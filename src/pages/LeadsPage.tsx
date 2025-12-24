@@ -3,6 +3,7 @@ import { AppLayout } from '@/components/layout/AppLayout';
 import { Header } from '@/components/layout/Header';
 import { LeadsTable } from '@/components/leads/LeadsTable';
 import { LeadFormDialog } from '@/components/leads/LeadFormDialog';
+import { FollowUpReminderDialog } from '@/components/leads/FollowUpReminderDialog';
 import { mockLeads } from '@/data/mockData';
 import { VERTICALS, Lead } from '@/types';
 import { useFollowUpReminders } from '@/hooks/useFollowUpReminders';
@@ -40,7 +41,13 @@ export default function LeadsPage() {
   };
 
   // Set up follow-up reminders
-  useFollowUpReminders({
+  const {
+    reminderLead,
+    minutesUntil,
+    isReminderOpen,
+    dismissReminder,
+    handleViewLead,
+  } = useFollowUpReminders({
     leads,
     onLeadClick: handleEditLead,
   });
@@ -146,6 +153,15 @@ export default function LeadsPage() {
         onOpenChange={setIsFormOpen}
         lead={editingLead}
         onSave={handleSaveLead}
+      />
+
+      {/* Follow-up Reminder Dialog */}
+      <FollowUpReminderDialog
+        lead={reminderLead}
+        open={isReminderOpen}
+        onOpenChange={dismissReminder}
+        onViewLead={handleViewLead}
+        minutesUntil={minutesUntil}
       />
     </AppLayout>
   );
