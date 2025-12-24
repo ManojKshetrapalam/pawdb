@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { cn } from '@/lib/utils';
 import { VERTICALS } from '@/types';
+import { useCurrentUser } from '@/contexts/CurrentUserContext';
 import {
   LayoutDashboard,
   Users,
@@ -35,9 +36,18 @@ const iconMap: Record<string, React.ComponentType<{ className?: string }>> = {
 export function Sidebar() {
   const location = useLocation();
   const [isVerticalsOpen, setIsVerticalsOpen] = useState(true);
+  const { currentUser, canAccessVertical, hasPermission } = useCurrentUser();
 
   const isActive = (path: string) => location.pathname === path;
   const isVerticalActive = (id: string) => location.pathname === `/verticals/${id}`;
+
+  // Filter verticals based on user access
+  const accessibleVerticals = VERTICALS.filter(v => canAccessVertical(v.id));
+
+  // Check if user can manage team/users
+  const canManageTeam = currentUser?.role === 'admin' || currentUser?.role === 'vertical-head' || hasPermission('canCreateUsers');
+  const canViewAccounts = currentUser?.role === 'admin' || currentUser?.role === 'vertical-head';
+  const canViewUserAccess = currentUser?.role === 'admin' || currentUser?.role === 'vertical-head' || hasPermission('canManagePermissions');
 
   return (
     <aside className="fixed left-0 top-0 z-40 h-screen w-64 bg-sidebar border-r border-sidebar-border">
@@ -66,59 +76,64 @@ export function Sidebar() {
               Dashboard
             </Link>
 
-            {/* Verticals Dropdown */}
-            <div>
-              <button
-                onClick={() => setIsVerticalsOpen(!isVerticalsOpen)}
-                className="flex w-full items-center justify-between gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground transition-colors"
-              >
-                <div className="flex items-center gap-3">
-                  <Store className="h-4 w-4" />
-                  Verticals
-                </div>
-                {isVerticalsOpen ? (
-                  <ChevronDown className="h-4 w-4" />
-                ) : (
-                  <ChevronRight className="h-4 w-4" />
+            {/* Verticals Dropdown - only show accessible verticals */}
+            {accessibleVerticals.length > 0 && (
+              <div>
+                <button
+                  onClick={() => setIsVerticalsOpen(!isVerticalsOpen)}
+                  className="flex w-full items-center justify-between gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground transition-colors"
+                >
+                  <div className="flex items-center gap-3">
+                    <Store className="h-4 w-4" />
+                    Verticals
+                  </div>
+                  {isVerticalsOpen ? (
+                    <ChevronDown className="h-4 w-4" />
+                  ) : (
+                    <ChevronRight className="h-4 w-4" />
+                  )}
+                </button>
+
+                {isVerticalsOpen && (
+                  <div className="ml-4 mt-1 space-y-1 border-l border-sidebar-border pl-3">
+                    {accessibleVerticals.map((vertical) => {
+                      const Icon = iconMap[vertical.icon] || Building2;
+                      return (
+                        <Link
+                          key={vertical.id}
+                          to={`/verticals/${vertical.id}`}
+                          className={cn(
+                            'flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-colors',
+                            isVerticalActive(vertical.id)
+                              ? 'bg-sidebar-accent text-sidebar-accent-foreground'
+                              : 'text-sidebar-muted hover:bg-sidebar-accent hover:text-sidebar-accent-foreground'
+                          )}
+                        >
+                          <Icon className="h-4 w-4" />
+                          {vertical.name}
+                        </Link>
+                      );
+                    })}
+                  </div>
                 )}
-              </button>
+              </div>
+            )}
 
-              {isVerticalsOpen && (
-                <div className="ml-4 mt-1 space-y-1 border-l border-sidebar-border pl-3">
-                  {VERTICALS.map((vertical) => {
-                    const Icon = iconMap[vertical.icon] || Building2;
-                    return (
-                      <Link
-                        key={vertical.id}
-                        to={`/verticals/${vertical.id}`}
-                        className={cn(
-                          'flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-colors',
-                          isVerticalActive(vertical.id)
-                            ? 'bg-sidebar-accent text-sidebar-accent-foreground'
-                            : 'text-sidebar-muted hover:bg-sidebar-accent hover:text-sidebar-accent-foreground'
-                        )}
-                      >
-                        <Icon className="h-4 w-4" />
-                        {vertical.name}
-                      </Link>
-                    );
-                  })}
-                </div>
-              )}
-            </div>
-
-            <Link
-              to="/leads"
-              className={cn(
-                'flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors',
-                isActive('/leads')
-                  ? 'bg-sidebar-accent text-sidebar-accent-foreground'
-                  : 'text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground'
-              )}
-            >
-              <Users className="h-4 w-4" />
-              All Leads
-            </Link>
+            {/* All Leads - only if user can access any vertical */}
+            {accessibleVerticals.length > 0 && (
+              <Link
+                to="/leads"
+                className={cn(
+                  'flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors',
+                  isActive('/leads')
+                    ? 'bg-sidebar-accent text-sidebar-accent-foreground'
+                    : 'text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground'
+                )}
+              >
+                <Users className="h-4 w-4" />
+                All Leads
+              </Link>
+            )}
 
             <Link
               to="/marketplace"
@@ -146,44 +161,53 @@ export function Sidebar() {
               Vendors
             </Link>
 
-            <Link
-              to="/team"
-              className={cn(
-                'flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors',
-                isActive('/team')
-                  ? 'bg-sidebar-accent text-sidebar-accent-foreground'
-                  : 'text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground'
-              )}
-            >
-              <UsersIcon className="h-4 w-4" />
-              Team
-            </Link>
+            {/* Team - only for users who can manage team */}
+            {canManageTeam && (
+              <Link
+                to="/team"
+                className={cn(
+                  'flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors',
+                  isActive('/team')
+                    ? 'bg-sidebar-accent text-sidebar-accent-foreground'
+                    : 'text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground'
+                )}
+              >
+                <UsersIcon className="h-4 w-4" />
+                Team
+              </Link>
+            )}
 
-            <Link
-              to="/user-access"
-              className={cn(
-                'flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors',
-                isActive('/user-access')
-                  ? 'bg-sidebar-accent text-sidebar-accent-foreground'
-                  : 'text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground'
-              )}
-            >
-              <Eye className="h-4 w-4" />
-              User Access
-            </Link>
+            {/* User Access - only for admin/vertical-head or those with permission */}
+            {canViewUserAccess && (
+              <Link
+                to="/user-access"
+                className={cn(
+                  'flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors',
+                  isActive('/user-access')
+                    ? 'bg-sidebar-accent text-sidebar-accent-foreground'
+                    : 'text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground'
+                )}
+              >
+                <Eye className="h-4 w-4" />
+                User Access
+              </Link>
+            )}
 
-            <Link
-              to="/accounts"
-              className={cn(
-                'flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors',
-                isActive('/accounts')
-                  ? 'bg-sidebar-accent text-sidebar-accent-foreground'
-                  : 'text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground'
-              )}
-            >
-              <Wallet className="h-4 w-4" />
-              Accounts
-            </Link>
+            {/* Accounts - only for admin/vertical-head */}
+            {canViewAccounts && (
+              <Link
+                to="/accounts"
+                className={cn(
+                  'flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors',
+                  isActive('/accounts')
+                    ? 'bg-sidebar-accent text-sidebar-accent-foreground'
+                    : 'text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground'
+                )}
+              >
+                <Wallet className="h-4 w-4" />
+                Accounts
+              </Link>
+            )}
           </div>
         </nav>
 
