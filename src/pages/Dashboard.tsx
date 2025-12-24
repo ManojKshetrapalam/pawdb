@@ -7,6 +7,7 @@ import { LeadsTable } from '@/components/leads/LeadsTable';
 import { LeadFormDialog } from '@/components/leads/LeadFormDialog';
 import { VERTICALS, Lead } from '@/types';
 import { mockLeads } from '@/data/mockData';
+import { useFollowUpReminders } from '@/hooks/useFollowUpReminders';
 import { Users, TrendingUp, CheckCircle, Clock, Store } from 'lucide-react';
 
 export default function Dashboard() {
@@ -18,7 +19,7 @@ export default function Dashboard() {
     totalLeads: leads.length,
     newLeads: leads.filter((l) => l.status === 'new').length,
     converted: leads.filter((l) => l.status === 'converted').length,
-    pending: leads.filter((l) => l.status === 'contacted').length,
+    pending: leads.filter((l) => l.status === 'contacted' || l.status === 'follow-up').length,
   };
 
   const getLeadCountByVertical = (verticalId: string) => {
@@ -35,6 +36,12 @@ export default function Dashboard() {
     setEditingLead(lead);
     setIsFormOpen(true);
   };
+
+  // Set up follow-up reminders
+  useFollowUpReminders({
+    leads,
+    onLeadClick: handleEditLead,
+  });
 
   const handleSaveLead = (leadData: Partial<Lead>) => {
     if (editingLead) {
@@ -56,6 +63,7 @@ export default function Dashboard() {
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
         notes: leadData.notes || [],
+        followUpDate: leadData.followUpDate,
       };
       setLeads([newLead, ...leads]);
     }

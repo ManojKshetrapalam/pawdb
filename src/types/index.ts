@@ -7,7 +7,7 @@ export type Vertical =
   | 'honeymoon' 
   | 'hospitality';
 
-export type LeadStatus = 'new' | 'contacted' | 'converted' | 'lost';
+export type LeadStatus = 'new' | 'contacted' | 'follow-up' | 'converted' | 'lost';
 
 export type LeadSource = 'meta' | 'google' | 'organic' | 'referral';
 
@@ -28,6 +28,7 @@ export interface Lead {
   createdAt: string;
   updatedAt: string;
   notes: LeadNote[];
+  followUpDate?: string;
 }
 
 export interface User {

@@ -6,6 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { Calendar } from '@/components/ui/calendar';
 import {
   Dialog,
   DialogContent,
@@ -21,9 +22,15 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from '@/components/ui/popover';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
-import { Clock } from 'lucide-react';
+import { Clock, CalendarIcon } from 'lucide-react';
+import { cn } from '@/lib/utils';
 
 interface LeadFormDialogProps {
   open: boolean;
@@ -42,6 +49,8 @@ const initialFormState = {
   source: 'meta' as LeadSource,
   assignedTo: '',
   newNote: '',
+  followUpDate: undefined as Date | undefined,
+  followUpTime: '10:00',
 };
 
 export function LeadFormDialog({ 
@@ -59,6 +68,7 @@ export function LeadFormDialog({
 
   useEffect(() => {
     if (lead) {
+      const followUpDateTime = lead.followUpDate ? new Date(lead.followUpDate) : undefined;
       setFormData({
         name: lead.name,
         email: lead.email,
@@ -68,6 +78,10 @@ export function LeadFormDialog({
         source: lead.source,
         assignedTo: lead.assignedTo || '',
         newNote: '',
+        followUpDate: followUpDateTime,
+        followUpTime: followUpDateTime 
+          ? `${String(followUpDateTime.getHours()).padStart(2, '0')}:${String(followUpDateTime.getMinutes()).padStart(2, '0')}`
+          : '10:00',
       });
       setExistingNotes(lead.notes || []);
     } else {
@@ -99,6 +113,10 @@ export function LeadFormDialog({
 
     if (!formData.vertical) {
       newErrors.vertical = 'Vertical is required';
+    }
+
+    if (formData.status === 'follow-up' && !formData.followUpDate) {
+      newErrors.followUpDate = 'Follow-up date is required';
     }
 
     setErrors(newErrors);
@@ -134,6 +152,15 @@ export function LeadFormDialog({
       });
     }
 
+    // Combine date and time for follow-up
+    let followUpDateTime: string | undefined;
+    if (formData.status === 'follow-up' && formData.followUpDate) {
+      const [hours, minutes] = formData.followUpTime.split(':').map(Number);
+      const dateTime = new Date(formData.followUpDate);
+      dateTime.setHours(hours, minutes, 0, 0);
+      followUpDateTime = dateTime.toISOString();
+    }
+
     onSave({
       name: formData.name,
       email: formData.email,
@@ -144,11 +171,20 @@ export function LeadFormDialog({
       assignedTo: formData.assignedTo || null,
       notes: finalNotes,
       updatedAt: new Date().toISOString(),
+      followUpDate: followUpDateTime,
     });
 
     toast.success(isEditing ? 'Lead updated successfully' : 'Lead created successfully');
     onOpenChange(false);
   };
+
+  const timeOptions = [];
+  for (let h = 0; h < 24; h++) {
+    for (let m = 0; m < 60; m += 30) {
+      const time = `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
+      timeOptions.push(time);
+    }
+  }
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -246,12 +282,71 @@ export function LeadFormDialog({
                     <SelectContent>
                       <SelectItem value="new">New</SelectItem>
                       <SelectItem value="contacted">Contacted</SelectItem>
+                      <SelectItem value="follow-up">Follow-up</SelectItem>
                       <SelectItem value="converted">Converted</SelectItem>
                       <SelectItem value="lost">Lost</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
               </div>
+
+              {/* Follow-up Date & Time (shown only when status is follow-up) */}
+              {formData.status === 'follow-up' && (
+                <div className="space-y-2 p-4 rounded-lg border border-purple-500/20 bg-purple-500/5">
+                  <Label className="text-purple-600">Follow-up Schedule *</Label>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="followUpDate" className="text-sm text-muted-foreground">Date</Label>
+                      <Popover>
+                        <PopoverTrigger asChild>
+                          <Button
+                            variant="outline"
+                            className={cn(
+                              "w-full justify-start text-left font-normal",
+                              !formData.followUpDate && "text-muted-foreground",
+                              errors.followUpDate && "border-destructive"
+                            )}
+                          >
+                            <CalendarIcon className="mr-2 h-4 w-4" />
+                            {formData.followUpDate ? format(formData.followUpDate, "PPP") : "Pick a date"}
+                          </Button>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-auto p-0" align="start">
+                          <Calendar
+                            mode="single"
+                            selected={formData.followUpDate}
+                            onSelect={(date) => setFormData({ ...formData, followUpDate: date })}
+                            disabled={(date) => date < new Date(new Date().setHours(0, 0, 0, 0))}
+                            initialFocus
+                            className="pointer-events-auto"
+                          />
+                        </PopoverContent>
+                      </Popover>
+                      {errors.followUpDate && (
+                        <p className="text-sm text-destructive">{errors.followUpDate}</p>
+                      )}
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="followUpTime" className="text-sm text-muted-foreground">Time</Label>
+                      <Select
+                        value={formData.followUpTime}
+                        onValueChange={(value) => setFormData({ ...formData, followUpTime: value })}
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select time" />
+                        </SelectTrigger>
+                        <SelectContent className="max-h-60">
+                          {timeOptions.map((time) => (
+                            <SelectItem key={time} value={time}>
+                              {time}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+                </div>
+              )}
 
               {/* Source & Assigned To */}
               <div className="grid grid-cols-2 gap-4">

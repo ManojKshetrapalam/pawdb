@@ -5,6 +5,7 @@ import { LeadsTable } from '@/components/leads/LeadsTable';
 import { LeadFormDialog } from '@/components/leads/LeadFormDialog';
 import { mockLeads } from '@/data/mockData';
 import { VERTICALS, Lead } from '@/types';
+import { useFollowUpReminders } from '@/hooks/useFollowUpReminders';
 import { Button } from '@/components/ui/button';
 import {
   Select,
@@ -38,6 +39,12 @@ export default function LeadsPage() {
     setIsFormOpen(true);
   };
 
+  // Set up follow-up reminders
+  useFollowUpReminders({
+    leads,
+    onLeadClick: handleEditLead,
+  });
+
   const handleSaveLead = (leadData: Partial<Lead>) => {
     if (editingLead) {
       // Update existing lead
@@ -60,6 +67,7 @@ export default function LeadsPage() {
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
         notes: leadData.notes || [],
+        followUpDate: leadData.followUpDate,
       };
       setLeads([newLead, ...leads]);
     }
@@ -91,6 +99,7 @@ export default function LeadsPage() {
               <SelectItem value="all">All Status</SelectItem>
               <SelectItem value="new">New</SelectItem>
               <SelectItem value="contacted">Contacted</SelectItem>
+              <SelectItem value="follow-up">Follow-up</SelectItem>
               <SelectItem value="converted">Converted</SelectItem>
               <SelectItem value="lost">Lost</SelectItem>
             </SelectContent>
