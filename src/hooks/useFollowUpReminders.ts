@@ -4,6 +4,7 @@ import { Lead } from '@/types';
 interface UseFollowUpRemindersProps {
   leads: Lead[];
   onLeadClick?: (lead: Lead) => void;
+  onUpdateLead?: (leadId: string, updates: Partial<Lead>) => void;
 }
 
 interface ReminderState {
@@ -11,8 +12,9 @@ interface ReminderState {
   minutesUntil: number;
 }
 
-export function useFollowUpReminders({ leads, onLeadClick }: UseFollowUpRemindersProps) {
+export function useFollowUpReminders({ leads, onLeadClick, onUpdateLead }: UseFollowUpRemindersProps) {
   const notifiedLeads = useRef<Set<string>>(new Set());
+  const snoozedLeads = useRef<Map<string, number>>(new Map()); // leadId -> snooze until timestamp
   const checkIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const [reminderLead, setReminderLead] = useState<ReminderState | null>(null);
 
@@ -26,6 +28,17 @@ export function useFollowUpReminders({ leads, onLeadClick }: UseFollowUpReminder
         lead.followUpDate && 
         !notifiedLeads.current.has(lead.id)
       ) {
+        // Check if this lead is snoozed
+        const snoozeUntil = snoozedLeads.current.get(lead.id);
+        if (snoozeUntil && now.getTime() < snoozeUntil) {
+          return; // Still snoozed, skip
+        }
+        
+        // Clear expired snooze
+        if (snoozeUntil) {
+          snoozedLeads.current.delete(lead.id);
+        }
+
         const followUpTime = new Date(lead.followUpDate);
         
         // Check if follow-up is within the next 5 minutes
@@ -73,11 +86,26 @@ export function useFollowUpReminders({ leads, onLeadClick }: UseFollowUpReminder
     setReminderLead(null);
   }, [onLeadClick]);
 
+  const handleSnooze = useCallback((lead: Lead, minutes: number) => {
+    const now = new Date();
+    const snoozeUntil = now.getTime() + minutes * 60 * 1000;
+    
+    // Set snooze time
+    snoozedLeads.current.set(lead.id, snoozeUntil);
+    
+    // Remove from notified so it can trigger again after snooze
+    notifiedLeads.current.delete(lead.id);
+    
+    // Close the dialog
+    setReminderLead(null);
+  }, []);
+
   return {
     reminderLead: reminderLead?.lead ?? null,
     minutesUntil: reminderLead?.minutesUntil ?? 0,
     isReminderOpen: reminderLead !== null,
     dismissReminder,
     handleViewLead,
+    handleSnooze,
   };
 }

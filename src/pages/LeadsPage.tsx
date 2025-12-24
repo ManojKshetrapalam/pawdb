@@ -47,6 +47,7 @@ export default function LeadsPage() {
     isReminderOpen,
     dismissReminder,
     handleViewLead,
+    handleSnooze,
   } = useFollowUpReminders({
     leads,
     onLeadClick: handleEditLead,
@@ -161,6 +162,7 @@ export default function LeadsPage() {
         open={isReminderOpen}
         onOpenChange={dismissReminder}
         onViewLead={handleViewLead}
+        onSnooze={handleSnooze}
         minutesUntil={minutesUntil}
       />
     </AppLayout>
