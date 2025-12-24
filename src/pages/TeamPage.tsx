@@ -96,7 +96,7 @@ export default function TeamPage() {
       
       <div className="p-6 space-y-6">
         {/* Team Stats - for admin and vertical heads */}
-        {isAdminOrVerticalHead && (
+        {isAdminOrVerticalHead ? (
           <div className="space-y-4">
             <div className="flex items-center justify-between">
               <h2 className="text-lg font-semibold text-foreground">Team Overview</h2>
@@ -126,6 +126,30 @@ export default function TeamPage() {
               <StatCard
                 title="Avg Conversion Rate"
                 value={`${teamStats.avgConversionRate}%`}
+                icon={TrendingUp}
+                iconColor="text-primary"
+              />
+            </div>
+          </div>
+        ) : currentUser && (
+          <div className="space-y-4">
+            <h2 className="text-lg font-semibold text-foreground">My Performance</h2>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+              <StatCard
+                title="My Assigned Leads"
+                value={currentUser.assignedLeads}
+                icon={UserIcon}
+                iconColor="text-info"
+              />
+              <StatCard
+                title="My Converted Leads"
+                value={currentUser.convertedLeads}
+                icon={CheckCircle}
+                iconColor="text-success"
+              />
+              <StatCard
+                title="My Conversion Rate"
+                value={`${currentUser.assignedLeads > 0 ? Math.round((currentUser.convertedLeads / currentUser.assignedLeads) * 100) : 0}%`}
                 icon={TrendingUp}
                 iconColor="text-primary"
               />
