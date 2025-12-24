@@ -54,7 +54,8 @@ export default function Dashboard() {
         source: leadData.source || 'meta',
         assignedTo: leadData.assignedTo || null,
         createdAt: new Date().toISOString(),
-        notes: leadData.notes,
+        updatedAt: new Date().toISOString(),
+        notes: leadData.notes || [],
       };
       setLeads([newLead, ...leads]);
     }

@@ -64,7 +64,8 @@ export default function VerticalPage() {
         source: leadData.source || 'meta',
         assignedTo: leadData.assignedTo || null,
         createdAt: new Date().toISOString(),
-        notes: leadData.notes,
+        updatedAt: new Date().toISOString(),
+        notes: leadData.notes || [],
       };
       setLeads([newLead, ...leads]);
     }
@@ -110,12 +111,13 @@ export default function VerticalPage() {
           />
         </div>
 
-        {/* Leads Table */}
+        {/* Leads Table - hide vertical column since we're already in a vertical */}
         <div>
           <h2 className="text-lg font-semibold text-foreground mb-4">Leads</h2>
           <LeadsTable 
             leads={verticalLeads} 
             onEdit={handleEditLead}
+            showVertical={false}
           />
         </div>
       </div>
