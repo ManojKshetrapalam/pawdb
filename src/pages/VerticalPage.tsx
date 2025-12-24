@@ -5,11 +5,13 @@ import { Header } from '@/components/layout/Header';
 import { LeadsTable } from '@/components/leads/LeadsTable';
 import { LeadFormDialog } from '@/components/leads/LeadFormDialog';
 import { FollowUpReminderDialog } from '@/components/leads/FollowUpReminderDialog';
+import { SubscriptionSelectionDialog } from '@/components/leads/SubscriptionSelectionDialog';
 import { StatCard } from '@/components/dashboard/StatCard';
 import { mockLeads } from '@/data/mockData';
 import { VERTICALS, Lead, Vertical } from '@/types';
 import { useFollowUpReminders } from '@/hooks/useFollowUpReminders';
 import { useMarketplace } from '@/contexts/MarketplaceContext';
+import { usePricing } from '@/contexts/PricingContext';
 import { Users, TrendingUp, CheckCircle, XCircle } from 'lucide-react';
 
 export default function VerticalPage() {
@@ -19,7 +21,10 @@ export default function VerticalPage() {
   const [leads, setLeads] = useState<Lead[]>(mockLeads);
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingLead, setEditingLead] = useState<Lead | null>(null);
+  const [subscriptionLead, setSubscriptionLead] = useState<Lead | null>(null);
+  const [isSubscriptionDialogOpen, setIsSubscriptionDialogOpen] = useState(false);
   const { postLead } = useMarketplace();
+  const { addConvertedSubscription } = usePricing();
 
   const verticalLeads = leads.filter((l) => l.vertical === verticalId);
 
@@ -90,11 +95,49 @@ export default function VerticalPage() {
   };
 
   const handleConvert = (leadId: string) => {
+    const lead = leads.find(l => l.id === leadId);
+    if (!lead) return;
+
+    // For B2B and B2C apps, show subscription selection dialog
+    if (lead.vertical === 'app-b2b' || lead.vertical === 'app-b2c') {
+      setSubscriptionLead(lead);
+      setIsSubscriptionDialogOpen(true);
+    } else {
+      // For other verticals, just mark as converted
+      setLeads(leads.map(l => 
+        l.id === leadId 
+          ? { ...l, status: 'converted' as const, updatedAt: new Date().toISOString() }
+          : l
+      ));
+    }
+  };
+
+  const handleSubscriptionConfirm = (
+    subscriptionType: 'quarterly' | 'halfYearly' | 'annual', 
+    isRenewal: boolean, 
+    price: number
+  ) => {
+    if (!subscriptionLead) return;
+
+    // Mark lead as converted
     setLeads(leads.map(l => 
-      l.id === leadId 
+      l.id === subscriptionLead.id 
         ? { ...l, status: 'converted' as const, updatedAt: new Date().toISOString() }
         : l
     ));
+
+    // Add to converted subscriptions
+    addConvertedSubscription({
+      leadId: subscriptionLead.id,
+      leadName: subscriptionLead.name,
+      appType: subscriptionLead.vertical as 'app-b2b' | 'app-b2c',
+      subscriptionType,
+      isRenewal,
+      price,
+      duration: subscriptionType === 'quarterly' ? 3 : subscriptionType === 'halfYearly' ? 6 : 12,
+    });
+
+    setSubscriptionLead(null);
   };
 
   return (
@@ -172,6 +215,14 @@ export default function VerticalPage() {
         onViewLead={handleViewLead}
         onSnooze={handleSnooze}
         minutesUntil={minutesUntil}
+      />
+
+      {/* Subscription Selection Dialog for B2B/B2C */}
+      <SubscriptionSelectionDialog
+        open={isSubscriptionDialogOpen}
+        onOpenChange={setIsSubscriptionDialogOpen}
+        lead={subscriptionLead}
+        onConfirm={handleSubscriptionConfirm}
       />
     </AppLayout>
   );

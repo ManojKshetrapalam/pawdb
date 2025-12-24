@@ -18,6 +18,7 @@ import {
   Bell,
   Settings,
   Smartphone,
+  Wallet,
 } from 'lucide-react';
 
 const iconMap: Record<string, React.ComponentType<{ className?: string }>> = {
@@ -155,6 +156,19 @@ export function Sidebar() {
             >
               <UsersIcon className="h-4 w-4" />
               Team
+            </Link>
+
+            <Link
+              to="/accounts"
+              className={cn(
+                'flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors',
+                isActive('/accounts')
+                  ? 'bg-sidebar-accent text-sidebar-accent-foreground'
+                  : 'text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground'
+              )}
+            >
+              <Wallet className="h-4 w-4" />
+              Accounts
             </Link>
           </div>
         </nav>
