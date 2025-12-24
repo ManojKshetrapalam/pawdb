@@ -9,6 +9,7 @@ import { StatCard } from '@/components/dashboard/StatCard';
 import { mockLeads } from '@/data/mockData';
 import { VERTICALS, Lead, Vertical } from '@/types';
 import { useFollowUpReminders } from '@/hooks/useFollowUpReminders';
+import { useMarketplace } from '@/contexts/MarketplaceContext';
 import { Users, TrendingUp, CheckCircle, XCircle } from 'lucide-react';
 
 export default function VerticalPage() {
@@ -18,6 +19,7 @@ export default function VerticalPage() {
   const [leads, setLeads] = useState<Lead[]>(mockLeads);
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingLead, setEditingLead] = useState<Lead | null>(null);
+  const { postLead } = useMarketplace();
 
   const verticalLeads = leads.filter((l) => l.vertical === verticalId);
 
@@ -153,6 +155,12 @@ export default function VerticalPage() {
         onOpenChange={setIsFormOpen}
         lead={editingLead}
         onSave={handleSaveLead}
+        onPostLead={(leadId, postData) => {
+          const leadToPost = leads.find(l => l.id === leadId);
+          if (leadToPost) {
+            postLead({ ...leadToPost, status: 'converted' }, postData.vendorConfigs);
+          }
+        }}
         defaultVertical={verticalId as Vertical}
       />
 

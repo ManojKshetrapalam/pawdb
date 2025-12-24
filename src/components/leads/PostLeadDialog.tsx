@@ -16,7 +16,7 @@ import { Input } from '@/components/ui/input';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Send, IndianRupee, Users, FileText, CreditCard, ChevronDown, ChevronUp } from 'lucide-react';
+import { Send, IndianRupee, Users, FileText, ChevronDown, ChevronUp } from 'lucide-react';
 import { toast } from 'sonner';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 
@@ -28,7 +28,6 @@ interface PostLeadDialogProps {
 }
 
 export interface VendorConfig {
-  subscription: string;
   price: number;
   maxBuyers: number;
   description: string;
@@ -50,7 +49,6 @@ const VENDOR_CATEGORIES = [
 ];
 
 const defaultVendorConfig: VendorConfig = {
-  subscription: '',
   price: 500,
   maxBuyers: 5,
   description: '',
@@ -64,7 +62,6 @@ export function PostLeadDialog({ open, onOpenChange, lead, onPost }: PostLeadDia
   const handleCategoryToggle = (category: string) => {
     setSelectedCategories((prev) => {
       if (prev.includes(category)) {
-        // Remove category and its config
         const newConfigs = { ...vendorConfigs };
         delete newConfigs[category];
         setVendorConfigs(newConfigs);
@@ -73,7 +70,6 @@ export function PostLeadDialog({ open, onOpenChange, lead, onPost }: PostLeadDia
         }
         return prev.filter((c) => c !== category);
       } else {
-        // Add category with default config
         setVendorConfigs((configs) => ({
           ...configs,
           [category]: { ...defaultVendorConfig },
@@ -101,11 +97,6 @@ export function PostLeadDialog({ open, onOpenChange, lead, onPost }: PostLeadDia
   const validateConfigs = (): boolean => {
     for (const category of selectedCategories) {
       const config = vendorConfigs[category];
-      if (!config?.subscription?.trim()) {
-        toast.error(`Please enter subscription for ${category}`);
-        setExpandedCategory(category);
-        return false;
-      }
       if (!config?.price || config.price <= 0) {
         toast.error(`Please set a valid price for ${category}`);
         setExpandedCategory(category);
@@ -159,7 +150,7 @@ export function PostLeadDialog({ open, onOpenChange, lead, onPost }: PostLeadDia
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Send className="h-5 w-5 text-primary" />
-            Post Lead to Vendors
+            Post Lead to Marketplace
           </DialogTitle>
           <DialogDescription>
             Configure pricing and details for each vendor category
@@ -257,20 +248,6 @@ export function PostLeadDialog({ open, onOpenChange, lead, onPost }: PostLeadDia
                       {/* Expanded Config */}
                       <CollapsibleContent>
                         <div className="px-4 pb-4 pt-2 space-y-4 border-t border-border/50">
-                          {/* Subscription */}
-                          <div className="space-y-2">
-                            <Label className="text-xs flex items-center gap-1">
-                              <CreditCard className="h-3 w-3" />
-                              Subscription *
-                            </Label>
-                            <Input
-                              placeholder="e.g., Premium, Gold, Basic..."
-                              value={config.subscription}
-                              onChange={(e) => updateVendorConfig(category, 'subscription', e.target.value)}
-                              className="h-9"
-                            />
-                          </div>
-
                           {/* Price and Max Buyers */}
                           <div className="grid grid-cols-2 gap-3">
                             <div className="space-y-2">
