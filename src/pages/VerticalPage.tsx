@@ -33,6 +33,7 @@ export default function VerticalPage() {
     isReminderOpen,
     dismissReminder,
     handleViewLead,
+    handleSnooze,
   } = useFollowUpReminders({
     leads: verticalLeads,
     onLeadClick: handleEditLead,
@@ -152,6 +153,7 @@ export default function VerticalPage() {
         open={isReminderOpen}
         onOpenChange={dismissReminder}
         onViewLead={handleViewLead}
+        onSnooze={handleSnooze}
         minutesUntil={minutesUntil}
       />
     </AppLayout>

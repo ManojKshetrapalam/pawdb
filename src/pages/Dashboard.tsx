@@ -45,6 +45,7 @@ export default function Dashboard() {
     isReminderOpen,
     dismissReminder,
     handleViewLead,
+    handleSnooze,
   } = useFollowUpReminders({
     leads,
     onLeadClick: handleEditLead,
@@ -167,6 +168,7 @@ export default function Dashboard() {
         open={isReminderOpen}
         onOpenChange={dismissReminder}
         onViewLead={handleViewLead}
+        onSnooze={handleSnooze}
         minutesUntil={minutesUntil}
       />
     </AppLayout>
