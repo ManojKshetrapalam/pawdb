@@ -19,6 +19,7 @@ import {
   Settings,
   Smartphone,
   Wallet,
+  Eye,
 } from 'lucide-react';
 
 const iconMap: Record<string, React.ComponentType<{ className?: string }>> = {
@@ -156,6 +157,19 @@ export function Sidebar() {
             >
               <UsersIcon className="h-4 w-4" />
               Team
+            </Link>
+
+            <Link
+              to="/user-access"
+              className={cn(
+                'flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors',
+                isActive('/user-access')
+                  ? 'bg-sidebar-accent text-sidebar-accent-foreground'
+                  : 'text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground'
+              )}
+            >
+              <Eye className="h-4 w-4" />
+              User Access
             </Link>
 
             <Link

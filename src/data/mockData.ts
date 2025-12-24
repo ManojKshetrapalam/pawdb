@@ -1,11 +1,51 @@
-import { Lead, User, Vendor } from '@/types';
+import { Lead, User, Vendor, DEFAULT_PERMISSIONS } from '@/types';
 
 export const mockUsers: User[] = [
-  { id: '1', name: 'Priya Sharma', email: 'priya@company.com', role: 'admin', assignedLeads: 45, convertedLeads: 32 },
-  { id: '2', name: 'Rahul Patel', email: 'rahul@company.com', role: 'agent', assignedLeads: 38, convertedLeads: 25 },
-  { id: '3', name: 'Anjali Gupta', email: 'anjali@company.com', role: 'agent', assignedLeads: 52, convertedLeads: 41 },
-  { id: '4', name: 'Vikram Singh', email: 'vikram@company.com', role: 'agent', assignedLeads: 29, convertedLeads: 18 },
-  { id: '5', name: 'Neha Kapoor', email: 'neha@company.com', role: 'agent', assignedLeads: 41, convertedLeads: 35 },
+  { 
+    id: '1', 
+    name: 'Priya Sharma', 
+    email: 'priya@company.com', 
+    role: 'admin', 
+    permissions: { ...DEFAULT_PERMISSIONS['admin'] },
+    assignedLeads: 45, 
+    convertedLeads: 32 
+  },
+  { 
+    id: '2', 
+    name: 'Rahul Patel', 
+    email: 'rahul@company.com', 
+    role: 'vertical-head', 
+    permissions: { ...DEFAULT_PERMISSIONS['vertical-head'], accessibleVerticals: ['wedding-course', 'wedding-sip'] },
+    assignedLeads: 38, 
+    convertedLeads: 25 
+  },
+  { 
+    id: '3', 
+    name: 'Anjali Gupta', 
+    email: 'anjali@company.com', 
+    role: 'manager', 
+    permissions: { ...DEFAULT_PERMISSIONS['manager'], accessibleVerticals: ['buy-leads'] },
+    assignedLeads: 52, 
+    convertedLeads: 41 
+  },
+  { 
+    id: '4', 
+    name: 'Vikram Singh', 
+    email: 'vikram@company.com', 
+    role: 'team-lead', 
+    permissions: { ...DEFAULT_PERMISSIONS['team-lead'], accessibleVerticals: ['app-b2b', 'app-b2c'] },
+    assignedLeads: 29, 
+    convertedLeads: 18 
+  },
+  { 
+    id: '5', 
+    name: 'Neha Kapoor', 
+    email: 'neha@company.com', 
+    role: 'associate', 
+    permissions: { ...DEFAULT_PERMISSIONS['associate'], accessibleVerticals: ['honeymoon', 'hospitality'] },
+    assignedLeads: 41, 
+    convertedLeads: 35 
+  },
 ];
 
 export const mockLeads: Lead[] = [

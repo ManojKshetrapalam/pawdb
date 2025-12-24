@@ -31,12 +31,67 @@ export interface Lead {
   followUpDate?: string;
 }
 
+export type UserRole = 'admin' | 'vertical-head' | 'manager' | 'team-lead' | 'associate';
+
+export interface UserPermissions {
+  canAddLeads: boolean;
+  canMoveLeadsToMembers: boolean;
+  canMoveLeadsToVerticals: boolean;
+  canCreateUsers: boolean;
+  canManagePermissions: boolean;
+  accessibleVerticals: Vertical[];
+}
+
+export const DEFAULT_PERMISSIONS: Record<UserRole, UserPermissions> = {
+  'admin': {
+    canAddLeads: true,
+    canMoveLeadsToMembers: true,
+    canMoveLeadsToVerticals: true,
+    canCreateUsers: true,
+    canManagePermissions: true,
+    accessibleVerticals: ['app-b2b', 'app-b2c', 'buy-leads', 'wedding-course', 'wedding-sip', 'honeymoon', 'hospitality'],
+  },
+  'vertical-head': {
+    canAddLeads: true,
+    canMoveLeadsToMembers: true,
+    canMoveLeadsToVerticals: true,
+    canCreateUsers: true,
+    canManagePermissions: true,
+    accessibleVerticals: [],
+  },
+  'manager': {
+    canAddLeads: true,
+    canMoveLeadsToMembers: true,
+    canMoveLeadsToVerticals: false,
+    canCreateUsers: false,
+    canManagePermissions: false,
+    accessibleVerticals: [],
+  },
+  'team-lead': {
+    canAddLeads: true,
+    canMoveLeadsToMembers: true,
+    canMoveLeadsToVerticals: false,
+    canCreateUsers: false,
+    canManagePermissions: false,
+    accessibleVerticals: [],
+  },
+  'associate': {
+    canAddLeads: false,
+    canMoveLeadsToMembers: false,
+    canMoveLeadsToVerticals: false,
+    canCreateUsers: false,
+    canManagePermissions: false,
+    accessibleVerticals: [],
+  },
+};
+
 export interface User {
   id: string;
   name: string;
   email: string;
   avatar?: string;
-  role: 'admin' | 'agent';
+  role: UserRole;
+  permissions: UserPermissions;
   assignedLeads: number;
   convertedLeads: number;
 }

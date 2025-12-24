@@ -10,6 +10,7 @@ import LeadsPage from "./pages/LeadsPage";
 import VendorsPage from "./pages/VendorsPage";
 import VerticalPage from "./pages/VerticalPage";
 import TeamPage from "./pages/TeamPage";
+import UserViewPage from "./pages/UserViewPage";
 import MarketplacePage from "./pages/MarketplacePage";
 import AccountsPage from "./pages/AccountsPage";
 import NotFound from "./pages/NotFound";
@@ -30,6 +31,7 @@ const App = () => (
               <Route path="/vendors" element={<VendorsPage />} />
               <Route path="/verticals/:verticalId" element={<VerticalPage />} />
               <Route path="/team" element={<TeamPage />} />
+              <Route path="/user-access" element={<UserViewPage />} />
               <Route path="/marketplace" element={<MarketplacePage />} />
               <Route path="/accounts" element={<AccountsPage />} />
               <Route path="*" element={<NotFound />} />
