@@ -1,0 +1,175 @@
+import { useState } from 'react';
+import { Lead, VERTICALS } from '@/types';
+import { mockUsers } from '@/data/mockData';
+import { LeadStatusBadge } from './LeadStatusBadge';
+import { Button } from '@/components/ui/button';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
+import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import { MoreHorizontal, UserPlus, Phone, Mail, CheckCircle, XCircle, Bell } from 'lucide-react';
+import { format } from 'date-fns';
+import { toast } from 'sonner';
+
+interface LeadsTableProps {
+  leads: Lead[];
+  onAssign?: (leadId: string, userId: string) => void;
+  onConvert?: (leadId: string) => void;
+}
+
+export function LeadsTable({ leads, onAssign, onConvert }: LeadsTableProps) {
+  const getVerticalName = (verticalId: string) => {
+    return VERTICALS.find((v) => v.id === verticalId)?.name || verticalId;
+  };
+
+  const getAssignedUser = (userId: string | null) => {
+    if (!userId) return null;
+    return mockUsers.find((u) => u.id === userId);
+  };
+
+  const handleAssign = (leadId: string, userId: string) => {
+    const user = mockUsers.find((u) => u.id === userId);
+    toast.success(`Lead assigned to ${user?.name}`);
+    onAssign?.(leadId, userId);
+  };
+
+  const handleConvert = (leadId: string) => {
+    toast.success('Lead converted! Notifying vendors...');
+    onConvert?.(leadId);
+  };
+
+  return (
+    <div className="rounded-xl border border-border bg-card overflow-hidden">
+      <Table>
+        <TableHeader>
+          <TableRow className="bg-muted/50 hover:bg-muted/50">
+            <TableHead className="font-semibold">Lead</TableHead>
+            <TableHead className="font-semibold">Vertical</TableHead>
+            <TableHead className="font-semibold">Status</TableHead>
+            <TableHead className="font-semibold">Assigned To</TableHead>
+            <TableHead className="font-semibold">Created</TableHead>
+            <TableHead className="font-semibold text-right">Actions</TableHead>
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          {leads.map((lead, index) => {
+            const assignedUser = getAssignedUser(lead.assignedTo);
+            return (
+              <TableRow 
+                key={lead.id} 
+                className="animate-fade-in"
+                style={{ animationDelay: `${index * 50}ms` }}
+              >
+                <TableCell>
+                  <div>
+                    <p className="font-medium text-card-foreground">{lead.name}</p>
+                    <div className="flex items-center gap-3 mt-1 text-sm text-muted-foreground">
+                      <span className="flex items-center gap-1">
+                        <Mail className="h-3 w-3" />
+                        {lead.email}
+                      </span>
+                      <span className="flex items-center gap-1">
+                        <Phone className="h-3 w-3" />
+                        {lead.phone}
+                      </span>
+                    </div>
+                  </div>
+                </TableCell>
+                <TableCell>
+                  <span className="inline-flex items-center rounded-md bg-muted px-2 py-1 text-sm font-medium">
+                    {getVerticalName(lead.vertical)}
+                  </span>
+                </TableCell>
+                <TableCell>
+                  <LeadStatusBadge status={lead.status} />
+                </TableCell>
+                <TableCell>
+                  {assignedUser ? (
+                    <div className="flex items-center gap-2">
+                      <Avatar className="h-6 w-6">
+                        <AvatarFallback className="text-xs bg-primary/10 text-primary">
+                          {assignedUser.name.split(' ').map((n) => n[0]).join('')}
+                        </AvatarFallback>
+                      </Avatar>
+                      <span className="text-sm">{assignedUser.name}</span>
+                    </div>
+                  ) : (
+                    <span className="text-sm text-muted-foreground">Unassigned</span>
+                  )}
+                </TableCell>
+                <TableCell className="text-muted-foreground">
+                  {format(new Date(lead.createdAt), 'MMM d, h:mm a')}
+                </TableCell>
+                <TableCell className="text-right">
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button variant="ghost" className="h-8 w-8 p-0">
+                        <MoreHorizontal className="h-4 w-4" />
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end">
+                      <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                      <DropdownMenuSeparator />
+                      
+                      {/* Assign submenu */}
+                      <DropdownMenu>
+                        <DropdownMenuTrigger className="flex w-full items-center px-2 py-1.5 text-sm hover:bg-accent rounded-sm cursor-pointer">
+                          <UserPlus className="mr-2 h-4 w-4" />
+                          Assign to
+                        </DropdownMenuTrigger>
+                      </DropdownMenu>
+                      
+                      {mockUsers.map((user) => (
+                        <DropdownMenuItem
+                          key={user.id}
+                          onClick={() => handleAssign(lead.id, user.id)}
+                          className="pl-8"
+                        >
+                          {user.name}
+                        </DropdownMenuItem>
+                      ))}
+                      
+                      <DropdownMenuSeparator />
+                      
+                      {lead.status !== 'converted' && (
+                        <DropdownMenuItem onClick={() => handleConvert(lead.id)}>
+                          <CheckCircle className="mr-2 h-4 w-4 text-success" />
+                          Mark Converted
+                        </DropdownMenuItem>
+                      )}
+                      
+                      {lead.vertical === 'buy-leads' && lead.status === 'converted' && (
+                        <DropdownMenuItem>
+                          <Bell className="mr-2 h-4 w-4 text-warning" />
+                          Notify Vendors
+                        </DropdownMenuItem>
+                      )}
+                      
+                      <DropdownMenuItem className="text-destructive">
+                        <XCircle className="mr-2 h-4 w-4" />
+                        Mark as Lost
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                </TableCell>
+              </TableRow>
+            );
+          })}
+        </TableBody>
+      </Table>
+    </div>
+  );
+}
