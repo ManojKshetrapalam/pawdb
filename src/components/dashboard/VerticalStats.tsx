@@ -83,22 +83,24 @@ export function VerticalStats({ verticalId, leads }: VerticalStatsProps) {
             <Button
               variant="outline"
               className={cn(
-                'justify-start text-left font-normal min-w-[280px]',
+                'justify-start text-left font-normal w-full sm:w-auto sm:min-w-[280px]',
                 !dateRange && 'text-muted-foreground'
               )}
             >
-              <CalendarIcon className="mr-2 h-4 w-4" />
-              {dateRange?.from ? (
-                dateRange.to ? (
-                  <>
-                    {format(dateRange.from, 'LLL dd, y')} - {format(dateRange.to, 'LLL dd, y')}
-                  </>
+              <CalendarIcon className="mr-2 h-4 w-4 shrink-0" />
+              <span className="truncate">
+                {dateRange?.from ? (
+                  dateRange.to ? (
+                    <>
+                      {format(dateRange.from, 'LLL dd, y')} - {format(dateRange.to, 'LLL dd, y')}
+                    </>
+                  ) : (
+                    format(dateRange.from, 'LLL dd, y')
+                  )
                 ) : (
-                  format(dateRange.from, 'LLL dd, y')
-                )
-              ) : (
-                <span>Pick a date range</span>
-              )}
+                  'Pick a date range'
+                )}
+              </span>
             </Button>
           </PopoverTrigger>
           <PopoverContent className="w-auto p-0" align="start">
@@ -108,8 +110,17 @@ export function VerticalStats({ verticalId, leads }: VerticalStatsProps) {
               defaultMonth={dateRange?.from}
               selected={dateRange}
               onSelect={setDateRange}
+              numberOfMonths={1}
+              className="pointer-events-auto sm:hidden"
+            />
+            <Calendar
+              initialFocus
+              mode="range"
+              defaultMonth={dateRange?.from}
+              selected={dateRange}
+              onSelect={setDateRange}
               numberOfMonths={2}
-              className="pointer-events-auto"
+              className="pointer-events-auto hidden sm:block"
             />
           </PopoverContent>
         </Popover>
@@ -173,24 +184,24 @@ export function VerticalStats({ verticalId, leads }: VerticalStatsProps) {
           </div>
 
           {/* Leads Sold Card with breakdown */}
-          <div className="rounded-xl border border-border bg-card p-6 animate-fade-in">
+          <div className="rounded-xl border border-border bg-card p-4 sm:p-6 animate-fade-in">
             <div className="flex items-start justify-between mb-4">
               <div>
                 <p className="text-sm font-medium text-muted-foreground">Leads Sold</p>
-                <p className="mt-2 text-3xl font-bold text-card-foreground">{buyLeadsStats.leadsSold}</p>
+                <p className="mt-2 text-2xl sm:text-3xl font-bold text-card-foreground">{buyLeadsStats.leadsSold}</p>
               </div>
-              <div className="rounded-lg bg-muted p-3 text-success">
-                <ShoppingCart className="h-5 w-5" />
+              <div className="rounded-lg bg-muted p-2 sm:p-3 text-success">
+                <ShoppingCart className="h-4 w-4 sm:h-5 sm:w-5" />
               </div>
             </div>
             
             {/* Breakdown */}
-            <div className="grid grid-cols-3 gap-4 pt-4 border-t border-border">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4 pt-4 border-t border-border">
               <div className="flex items-center gap-2">
                 <div className="p-2 rounded-md bg-success/10">
                   <DollarSign className="h-4 w-4 text-success" />
                 </div>
-                <div>
+                <div className="flex-1 flex sm:block items-center justify-between">
                   <p className="text-xs text-muted-foreground">Full Price</p>
                   <p className="text-lg font-semibold text-card-foreground">{buyLeadsStats.fullPriceSold}</p>
                 </div>
@@ -199,7 +210,7 @@ export function VerticalStats({ verticalId, leads }: VerticalStatsProps) {
                 <div className="p-2 rounded-md bg-warning/10">
                   <Percent className="h-4 w-4 text-warning" />
                 </div>
-                <div>
+                <div className="flex-1 flex sm:block items-center justify-between">
                   <p className="text-xs text-muted-foreground">Discount</p>
                   <p className="text-lg font-semibold text-card-foreground">{buyLeadsStats.discountSold}</p>
                 </div>
@@ -208,7 +219,7 @@ export function VerticalStats({ verticalId, leads }: VerticalStatsProps) {
                 <div className="p-2 rounded-md bg-info/10">
                   <Gift className="h-4 w-4 text-info" />
                 </div>
-                <div>
+                <div className="flex-1 flex sm:block items-center justify-between">
                   <p className="text-xs text-muted-foreground">Free</p>
                   <p className="text-lg font-semibold text-card-foreground">{buyLeadsStats.freeSold}</p>
                 </div>
