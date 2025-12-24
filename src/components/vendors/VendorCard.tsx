@@ -7,9 +7,10 @@ import { toast } from 'sonner';
 
 interface VendorCardProps {
   vendor: Vendor;
+  onViewDetails?: (vendor: Vendor) => void;
 }
 
-export function VendorCard({ vendor }: VendorCardProps) {
+export function VendorCard({ vendor, onViewDetails }: VendorCardProps) {
   const handleNotify = () => {
     toast.success(`Notification sent to ${vendor.businessName}`);
   };
@@ -59,7 +60,12 @@ export function VendorCard({ vendor }: VendorCardProps) {
         </div>
 
         <div className="flex gap-2 pt-2">
-          <Button variant="outline" size="sm" className="flex-1">
+          <Button 
+            variant="outline" 
+            size="sm" 
+            className="flex-1"
+            onClick={() => onViewDetails?.(vendor)}
+          >
             View Details
           </Button>
           <Button size="sm" className="flex-1 gap-1" onClick={handleNotify}>
