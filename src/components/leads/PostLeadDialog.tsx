@@ -16,8 +16,9 @@ import { Input } from '@/components/ui/input';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Send, IndianRupee, Users, FileText, CreditCard } from 'lucide-react';
+import { Send, IndianRupee, Users, FileText, CreditCard, ChevronDown, ChevronUp } from 'lucide-react';
 import { toast } from 'sonner';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 
 interface PostLeadDialogProps {
   open: boolean;
@@ -26,12 +27,15 @@ interface PostLeadDialogProps {
   onPost: (leadId: string, postData: PostLeadData) => void;
 }
 
-export interface PostLeadData {
-  vendorCategories: string[];
+export interface VendorConfig {
   subscription: string;
-  description: string;
   price: number;
   maxBuyers: number;
+  description: string;
+}
+
+export interface PostLeadData {
+  vendorConfigs: Record<string, VendorConfig>;
 }
 
 const VENDOR_CATEGORIES = [
@@ -45,23 +49,75 @@ const VENDOR_CATEGORIES = [
   'Bakery',
 ];
 
+const defaultVendorConfig: VendorConfig = {
+  subscription: '',
+  price: 500,
+  maxBuyers: 5,
+  description: '',
+};
+
 export function PostLeadDialog({ open, onOpenChange, lead, onPost }: PostLeadDialogProps) {
   const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
-  const [subscription, setSubscription] = useState('');
-  const [description, setDescription] = useState('');
-  const [price, setPrice] = useState<number>(500);
-  const [maxBuyers, setMaxBuyers] = useState<number>(5);
+  const [vendorConfigs, setVendorConfigs] = useState<Record<string, VendorConfig>>({});
+  const [expandedCategory, setExpandedCategory] = useState<string | null>(null);
 
   const handleCategoryToggle = (category: string) => {
-    setSelectedCategories((prev) =>
-      prev.includes(category)
-        ? prev.filter((c) => c !== category)
-        : [...prev, category]
-    );
+    setSelectedCategories((prev) => {
+      if (prev.includes(category)) {
+        // Remove category and its config
+        const newConfigs = { ...vendorConfigs };
+        delete newConfigs[category];
+        setVendorConfigs(newConfigs);
+        if (expandedCategory === category) {
+          setExpandedCategory(null);
+        }
+        return prev.filter((c) => c !== category);
+      } else {
+        // Add category with default config
+        setVendorConfigs((configs) => ({
+          ...configs,
+          [category]: { ...defaultVendorConfig },
+        }));
+        setExpandedCategory(category);
+        return [...prev, category];
+      }
+    });
+  };
+
+  const updateVendorConfig = (category: string, field: keyof VendorConfig, value: string | number) => {
+    setVendorConfigs((configs) => ({
+      ...configs,
+      [category]: {
+        ...configs[category],
+        [field]: value,
+      },
+    }));
   };
 
   const getVendorsInCategory = (category: string) => {
     return mockVendors.filter((v) => v.category === category && v.isSubscribed).length;
+  };
+
+  const validateConfigs = (): boolean => {
+    for (const category of selectedCategories) {
+      const config = vendorConfigs[category];
+      if (!config?.subscription?.trim()) {
+        toast.error(`Please enter subscription for ${category}`);
+        setExpandedCategory(category);
+        return false;
+      }
+      if (!config?.price || config.price <= 0) {
+        toast.error(`Please set a valid price for ${category}`);
+        setExpandedCategory(category);
+        return false;
+      }
+      if (!config?.maxBuyers || config.maxBuyers <= 0) {
+        toast.error(`Please set valid max buyers for ${category}`);
+        setExpandedCategory(category);
+        return false;
+      }
+    }
+    return true;
   };
 
   const handlePost = () => {
@@ -71,38 +127,23 @@ export function PostLeadDialog({ open, onOpenChange, lead, onPost }: PostLeadDia
       toast.error('Please select at least one vendor category');
       return;
     }
-    if (!subscription.trim()) {
-      toast.error('Please enter subscription details');
-      return;
-    }
-    if (price <= 0) {
-      toast.error('Please set a valid price');
-      return;
-    }
-    if (maxBuyers <= 0) {
-      toast.error('Please set valid number of buyers');
+
+    if (!validateConfigs()) {
       return;
     }
 
     onPost(lead.id, {
-      vendorCategories: selectedCategories,
-      subscription,
-      description,
-      price,
-      maxBuyers,
+      vendorConfigs,
     });
 
-    // Reset form
     resetForm();
     onOpenChange(false);
   };
 
   const resetForm = () => {
     setSelectedCategories([]);
-    setSubscription('');
-    setDescription('');
-    setPrice(500);
-    setMaxBuyers(5);
+    setVendorConfigs({});
+    setExpandedCategory(null);
   };
 
   const handleClose = () => {
@@ -114,18 +155,18 @@ export function PostLeadDialog({ open, onOpenChange, lead, onPost }: PostLeadDia
 
   return (
     <Dialog open={open} onOpenChange={handleClose}>
-      <DialogContent className="sm:max-w-[600px] max-h-[90vh] flex flex-col">
+      <DialogContent className="sm:max-w-[650px] max-h-[90vh] flex flex-col">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Send className="h-5 w-5 text-primary" />
             Post Lead to Vendors
           </DialogTitle>
           <DialogDescription>
-            Share this lead with selected vendors for purchase
+            Configure pricing and details for each vendor category
           </DialogDescription>
         </DialogHeader>
 
-        <div className="flex-1 overflow-y-auto space-y-5 py-2">
+        <div className="flex-1 overflow-y-auto space-y-4 py-2 pr-1">
           {/* Lead Info Summary */}
           <Card className="bg-muted/50 border-border">
             <CardHeader className="py-3 px-4">
@@ -142,125 +183,174 @@ export function PostLeadDialog({ open, onOpenChange, lead, onPost }: PostLeadDia
             </CardContent>
           </Card>
 
-          {/* Vendor Selection */}
+          {/* Vendor Selection with Individual Configs */}
           <div>
             <Label className="text-base font-semibold flex items-center gap-2 mb-3">
               <Users className="h-4 w-4" />
-              Select Vendor Categories *
+              Select Vendors & Configure
             </Label>
             <p className="text-sm text-muted-foreground mb-4">
-              Choose which types of vendors should see this lead
+              Select vendors and set individual pricing for each
             </p>
-            <div className="grid grid-cols-2 gap-3">
+            
+            <div className="space-y-2">
               {VENDOR_CATEGORIES.map((category) => {
                 const vendorCount = getVendorsInCategory(category);
                 const isSelected = selectedCategories.includes(category);
+                const isExpanded = expandedCategory === category;
+                const config = vendorConfigs[category] || defaultVendorConfig;
+
                 return (
-                  <div
+                  <Collapsible
                     key={category}
-                    onClick={() => handleCategoryToggle(category)}
-                    className={`
-                      flex items-center gap-3 p-3 rounded-lg border cursor-pointer transition-all
-                      ${isSelected 
-                        ? 'border-primary bg-primary/10 ring-1 ring-primary' 
-                        : 'border-border bg-card hover:border-primary/50 hover:bg-muted/50'
-                      }
-                    `}
+                    open={isSelected && isExpanded}
+                    onOpenChange={() => isSelected && setExpandedCategory(isExpanded ? null : category)}
                   >
-                    <Checkbox
-                      checked={isSelected}
-                      onCheckedChange={() => handleCategoryToggle(category)}
-                      className="pointer-events-none"
-                    />
-                    <div className="flex-1">
-                      <p className="font-medium text-sm">{category}</p>
-                      <p className="text-xs text-muted-foreground">
-                        {vendorCount} active vendor{vendorCount !== 1 ? 's' : ''}
-                      </p>
+                    <div
+                      className={`
+                        rounded-lg border transition-all
+                        ${isSelected 
+                          ? 'border-primary bg-primary/5 ring-1 ring-primary' 
+                          : 'border-border bg-card hover:border-primary/50'
+                        }
+                      `}
+                    >
+                      {/* Category Header */}
+                      <div 
+                        className="flex items-center gap-3 p-3 cursor-pointer"
+                        onClick={() => !isSelected && handleCategoryToggle(category)}
+                      >
+                        <Checkbox
+                          checked={isSelected}
+                          onCheckedChange={() => handleCategoryToggle(category)}
+                          onClick={(e) => e.stopPropagation()}
+                        />
+                        <div className="flex-1">
+                          <p className="font-medium text-sm">{category}</p>
+                          <p className="text-xs text-muted-foreground">
+                            {vendorCount} active vendor{vendorCount !== 1 ? 's' : ''}
+                          </p>
+                        </div>
+                        {isSelected && (
+                          <>
+                            <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                              <Badge variant="outline" className="text-xs">
+                                ₹{config.price}
+                              </Badge>
+                              <Badge variant="outline" className="text-xs">
+                                {config.maxBuyers} buyers
+                              </Badge>
+                            </div>
+                            <CollapsibleTrigger asChild onClick={(e) => e.stopPropagation()}>
+                              <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
+                                {isExpanded ? (
+                                  <ChevronUp className="h-4 w-4" />
+                                ) : (
+                                  <ChevronDown className="h-4 w-4" />
+                                )}
+                              </Button>
+                            </CollapsibleTrigger>
+                          </>
+                        )}
+                      </div>
+
+                      {/* Expanded Config */}
+                      <CollapsibleContent>
+                        <div className="px-4 pb-4 pt-2 space-y-4 border-t border-border/50">
+                          {/* Subscription */}
+                          <div className="space-y-2">
+                            <Label className="text-xs flex items-center gap-1">
+                              <CreditCard className="h-3 w-3" />
+                              Subscription *
+                            </Label>
+                            <Input
+                              placeholder="e.g., Premium, Gold, Basic..."
+                              value={config.subscription}
+                              onChange={(e) => updateVendorConfig(category, 'subscription', e.target.value)}
+                              className="h-9"
+                            />
+                          </div>
+
+                          {/* Price and Max Buyers */}
+                          <div className="grid grid-cols-2 gap-3">
+                            <div className="space-y-2">
+                              <Label className="text-xs flex items-center gap-1">
+                                <IndianRupee className="h-3 w-3" />
+                                Price *
+                              </Label>
+                              <div className="relative">
+                                <span className="absolute left-2 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">₹</span>
+                                <Input
+                                  type="number"
+                                  value={config.price}
+                                  onChange={(e) => updateVendorConfig(category, 'price', Number(e.target.value))}
+                                  className="pl-6 h-9"
+                                  min={1}
+                                />
+                              </div>
+                            </div>
+                            <div className="space-y-2">
+                              <Label className="text-xs flex items-center gap-1">
+                                <Users className="h-3 w-3" />
+                                Max Buyers *
+                              </Label>
+                              <Input
+                                type="number"
+                                value={config.maxBuyers}
+                                onChange={(e) => updateVendorConfig(category, 'maxBuyers', Number(e.target.value))}
+                                className="h-9"
+                                min={1}
+                                max={20}
+                              />
+                            </div>
+                          </div>
+
+                          {/* Description */}
+                          <div className="space-y-2">
+                            <Label className="text-xs flex items-center gap-1">
+                              <FileText className="h-3 w-3" />
+                              Requirements (Optional)
+                            </Label>
+                            <Textarea
+                              placeholder="Specific requirements for this vendor type..."
+                              value={config.description}
+                              onChange={(e) => updateVendorConfig(category, 'description', e.target.value)}
+                              className="min-h-[60px] resize-none text-sm"
+                            />
+                          </div>
+                        </div>
+                      </CollapsibleContent>
                     </div>
-                  </div>
+                  </Collapsible>
                 );
               })}
             </div>
           </div>
 
-          {/* Subscription */}
-          <div className="space-y-2">
-            <Label className="flex items-center gap-2">
-              <CreditCard className="h-4 w-4" />
-              Subscription Details *
-            </Label>
-            <Input
-              placeholder="e.g., Premium Package, Gold Membership..."
-              value={subscription}
-              onChange={(e) => setSubscription(e.target.value)}
-            />
-            <p className="text-xs text-muted-foreground">
-              Specify the subscription type for vendors
-            </p>
-          </div>
-
-          {/* Price and Max Buyers */}
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label className="flex items-center gap-2">
-                <IndianRupee className="h-4 w-4" />
-                Lead Price *
-              </Label>
-              <div className="relative">
-                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">₹</span>
-                <Input
-                  type="number"
-                  value={price}
-                  onChange={(e) => setPrice(Number(e.target.value))}
-                  className="pl-8"
-                  min={1}
-                />
-              </div>
-              <p className="text-xs text-muted-foreground">
-                Price per vendor
-              </p>
-            </div>
-            <div className="space-y-2">
-              <Label className="flex items-center gap-2">
-                <Users className="h-4 w-4" />
-                Max Buyers *
-              </Label>
-              <Input
-                type="number"
-                value={maxBuyers}
-                onChange={(e) => setMaxBuyers(Number(e.target.value))}
-                min={1}
-                max={20}
-              />
-              <p className="text-xs text-muted-foreground">
-                How many vendors can buy
-              </p>
-            </div>
-          </div>
-
-          {/* Description (Optional) */}
-          <div className="space-y-2">
-            <Label className="flex items-center gap-2">
-              <FileText className="h-4 w-4" />
-              Additional Requirements (Optional)
-            </Label>
-            <Textarea
-              placeholder="Add any extra details about the client's requirements, event specifics, preferences..."
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
-              className="min-h-[80px] resize-none"
-            />
-          </div>
+          {/* Summary */}
+          {selectedCategories.length > 0 && (
+            <Card className="bg-muted/30 border-border">
+              <CardContent className="py-3 px-4">
+                <p className="text-sm font-medium mb-2">Summary</p>
+                <div className="flex flex-wrap gap-2">
+                  {selectedCategories.map((cat) => (
+                    <Badge key={cat} variant="secondary" className="text-xs">
+                      {cat}: ₹{vendorConfigs[cat]?.price || 0} × {vendorConfigs[cat]?.maxBuyers || 0}
+                    </Badge>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+          )}
         </div>
 
         <DialogFooter className="pt-4 border-t">
           <Button variant="outline" onClick={handleClose}>
             Cancel
           </Button>
-          <Button onClick={handlePost} className="gap-2">
+          <Button onClick={handlePost} className="gap-2" disabled={selectedCategories.length === 0}>
             <Send className="h-4 w-4" />
-            Post Lead
+            Post to {selectedCategories.length} Vendor{selectedCategories.length !== 1 ? 's' : ''}
           </Button>
         </DialogFooter>
       </DialogContent>
