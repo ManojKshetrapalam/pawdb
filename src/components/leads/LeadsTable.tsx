@@ -1,4 +1,3 @@
-import { useState } from 'react';
 import { Lead, VERTICALS } from '@/types';
 import { mockUsers } from '@/data/mockData';
 import { LeadStatusBadge } from './LeadStatusBadge';
@@ -18,9 +17,12 @@ import {
   DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
+  DropdownMenuSub,
+  DropdownMenuSubTrigger,
+  DropdownMenuSubContent,
 } from '@/components/ui/dropdown-menu';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
-import { MoreHorizontal, UserPlus, Phone, Mail, CheckCircle, XCircle, Bell } from 'lucide-react';
+import { MoreHorizontal, UserPlus, Phone, Mail, CheckCircle, XCircle, Bell, Pencil } from 'lucide-react';
 import { format } from 'date-fns';
 import { toast } from 'sonner';
 
@@ -28,9 +30,10 @@ interface LeadsTableProps {
   leads: Lead[];
   onAssign?: (leadId: string, userId: string) => void;
   onConvert?: (leadId: string) => void;
+  onEdit?: (lead: Lead) => void;
 }
 
-export function LeadsTable({ leads, onAssign, onConvert }: LeadsTableProps) {
+export function LeadsTable({ leads, onAssign, onConvert, onEdit }: LeadsTableProps) {
   const getVerticalName = (verticalId: string) => {
     return VERTICALS.find((v) => v.id === verticalId)?.name || verticalId;
   };
@@ -50,6 +53,14 @@ export function LeadsTable({ leads, onAssign, onConvert }: LeadsTableProps) {
     toast.success('Lead converted! Notifying vendors...');
     onConvert?.(leadId);
   };
+
+  if (leads.length === 0) {
+    return (
+      <div className="rounded-xl border border-border bg-card p-12 text-center">
+        <p className="text-muted-foreground">No leads found</p>
+      </div>
+    );
+  }
 
   return (
     <div className="rounded-xl border border-border bg-card overflow-hidden">
@@ -124,23 +135,29 @@ export function LeadsTable({ leads, onAssign, onConvert }: LeadsTableProps) {
                       <DropdownMenuLabel>Actions</DropdownMenuLabel>
                       <DropdownMenuSeparator />
                       
+                      {/* Edit */}
+                      <DropdownMenuItem onClick={() => onEdit?.(lead)}>
+                        <Pencil className="mr-2 h-4 w-4" />
+                        Edit Lead
+                      </DropdownMenuItem>
+                      
                       {/* Assign submenu */}
-                      <DropdownMenu>
-                        <DropdownMenuTrigger className="flex w-full items-center px-2 py-1.5 text-sm hover:bg-accent rounded-sm cursor-pointer">
+                      <DropdownMenuSub>
+                        <DropdownMenuSubTrigger>
                           <UserPlus className="mr-2 h-4 w-4" />
                           Assign to
-                        </DropdownMenuTrigger>
-                      </DropdownMenu>
-                      
-                      {mockUsers.map((user) => (
-                        <DropdownMenuItem
-                          key={user.id}
-                          onClick={() => handleAssign(lead.id, user.id)}
-                          className="pl-8"
-                        >
-                          {user.name}
-                        </DropdownMenuItem>
-                      ))}
+                        </DropdownMenuSubTrigger>
+                        <DropdownMenuSubContent>
+                          {mockUsers.map((user) => (
+                            <DropdownMenuItem
+                              key={user.id}
+                              onClick={() => handleAssign(lead.id, user.id)}
+                            >
+                              {user.name}
+                            </DropdownMenuItem>
+                          ))}
+                        </DropdownMenuSubContent>
+                      </DropdownMenuSub>
                       
                       <DropdownMenuSeparator />
                       
