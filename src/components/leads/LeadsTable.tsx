@@ -131,7 +131,7 @@ export function LeadsTable({ leads, onAssign, onConvert, onEdit, showVertical = 
                   )}
                 </TableCell>
                 <TableCell className="text-muted-foreground">
-                  {format(new Date(lead.updatedAt), 'MMM d, h:mm a')}
+                  {format(new Date(lead.updatedAt || lead.createdAt), 'MMM d, h:mm a')}
                 </TableCell>
                 <TableCell className="text-right">
                   <DropdownMenu>
