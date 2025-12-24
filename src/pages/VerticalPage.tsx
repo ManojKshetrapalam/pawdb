@@ -1,17 +1,23 @@
+import { useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { Header } from '@/components/layout/Header';
 import { LeadsTable } from '@/components/leads/LeadsTable';
+import { LeadFormDialog } from '@/components/leads/LeadFormDialog';
 import { StatCard } from '@/components/dashboard/StatCard';
 import { mockLeads } from '@/data/mockData';
-import { VERTICALS } from '@/types';
+import { VERTICALS, Lead, Vertical } from '@/types';
 import { Users, TrendingUp, CheckCircle, XCircle } from 'lucide-react';
 
 export default function VerticalPage() {
   const { verticalId } = useParams<{ verticalId: string }>();
   
   const vertical = VERTICALS.find((v) => v.id === verticalId);
-  const verticalLeads = mockLeads.filter((l) => l.vertical === verticalId);
+  const [leads, setLeads] = useState<Lead[]>(mockLeads);
+  const [isFormOpen, setIsFormOpen] = useState(false);
+  const [editingLead, setEditingLead] = useState<Lead | null>(null);
+
+  const verticalLeads = leads.filter((l) => l.vertical === verticalId);
 
   if (!vertical) {
     return (
@@ -30,6 +36,40 @@ export default function VerticalPage() {
     lost: verticalLeads.filter((l) => l.status === 'lost').length,
   };
 
+  const handleAddClick = () => {
+    setEditingLead(null);
+    setIsFormOpen(true);
+  };
+
+  const handleEditLead = (lead: Lead) => {
+    setEditingLead(lead);
+    setIsFormOpen(true);
+  };
+
+  const handleSaveLead = (leadData: Partial<Lead>) => {
+    if (editingLead) {
+      setLeads(leads.map(l => 
+        l.id === editingLead.id 
+          ? { ...l, ...leadData }
+          : l
+      ));
+    } else {
+      const newLead: Lead = {
+        id: String(Date.now()),
+        name: leadData.name || '',
+        email: leadData.email || '',
+        phone: leadData.phone || '',
+        vertical: leadData.vertical || (verticalId as Vertical),
+        status: leadData.status || 'new',
+        source: leadData.source || 'meta',
+        assignedTo: leadData.assignedTo || null,
+        createdAt: new Date().toISOString(),
+        notes: leadData.notes,
+      };
+      setLeads([newLead, ...leads]);
+    }
+  };
+
   return (
     <AppLayout>
       <Header 
@@ -37,6 +77,7 @@ export default function VerticalPage() {
         subtitle={vertical.description}
         showAddButton
         addButtonLabel="Add Lead"
+        onAddClick={handleAddClick}
       />
       
       <div className="p-6 space-y-6">
@@ -72,15 +113,21 @@ export default function VerticalPage() {
         {/* Leads Table */}
         <div>
           <h2 className="text-lg font-semibold text-foreground mb-4">Leads</h2>
-          {verticalLeads.length > 0 ? (
-            <LeadsTable leads={verticalLeads} />
-          ) : (
-            <div className="rounded-xl border border-border bg-card p-12 text-center">
-              <p className="text-muted-foreground">No leads in this vertical yet</p>
-            </div>
-          )}
+          <LeadsTable 
+            leads={verticalLeads} 
+            onEdit={handleEditLead}
+          />
         </div>
       </div>
+
+      {/* Lead Form Dialog */}
+      <LeadFormDialog
+        open={isFormOpen}
+        onOpenChange={setIsFormOpen}
+        lead={editingLead}
+        onSave={handleSaveLead}
+        defaultVertical={verticalId as Vertical}
+      />
     </AppLayout>
   );
 }

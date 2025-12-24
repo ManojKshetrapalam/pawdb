@@ -1,29 +1,64 @@
+import { useState } from 'react';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { Header } from '@/components/layout/Header';
 import { StatCard } from '@/components/dashboard/StatCard';
 import { VerticalCard } from '@/components/dashboard/VerticalCard';
 import { LeadsTable } from '@/components/leads/LeadsTable';
-import { VERTICALS } from '@/types';
+import { LeadFormDialog } from '@/components/leads/LeadFormDialog';
+import { VERTICALS, Lead } from '@/types';
 import { mockLeads } from '@/data/mockData';
 import { Users, TrendingUp, CheckCircle, Clock, Store } from 'lucide-react';
 
 export default function Dashboard() {
+  const [leads, setLeads] = useState<Lead[]>(mockLeads);
+  const [isFormOpen, setIsFormOpen] = useState(false);
+  const [editingLead, setEditingLead] = useState<Lead | null>(null);
+
   const stats = {
-    totalLeads: mockLeads.length,
-    newLeads: mockLeads.filter((l) => l.status === 'new').length,
-    converted: mockLeads.filter((l) => l.status === 'converted').length,
-    pending: mockLeads.filter((l) => l.status === 'contacted').length,
+    totalLeads: leads.length,
+    newLeads: leads.filter((l) => l.status === 'new').length,
+    converted: leads.filter((l) => l.status === 'converted').length,
+    pending: leads.filter((l) => l.status === 'contacted').length,
   };
 
   const getLeadCountByVertical = (verticalId: string) => {
-    return mockLeads.filter((l) => l.vertical === verticalId).length;
+    return leads.filter((l) => l.vertical === verticalId).length;
   };
 
   const getNewLeadsByVertical = (verticalId: string) => {
-    return mockLeads.filter((l) => l.vertical === verticalId && l.status === 'new').length;
+    return leads.filter((l) => l.vertical === verticalId && l.status === 'new').length;
   };
 
-  const recentLeads = mockLeads.slice(0, 5);
+  const recentLeads = leads.slice(0, 5);
+
+  const handleEditLead = (lead: Lead) => {
+    setEditingLead(lead);
+    setIsFormOpen(true);
+  };
+
+  const handleSaveLead = (leadData: Partial<Lead>) => {
+    if (editingLead) {
+      setLeads(leads.map(l => 
+        l.id === editingLead.id 
+          ? { ...l, ...leadData }
+          : l
+      ));
+    } else {
+      const newLead: Lead = {
+        id: String(Date.now()),
+        name: leadData.name || '',
+        email: leadData.email || '',
+        phone: leadData.phone || '',
+        vertical: leadData.vertical!,
+        status: leadData.status || 'new',
+        source: leadData.source || 'meta',
+        assignedTo: leadData.assignedTo || null,
+        createdAt: new Date().toISOString(),
+        notes: leadData.notes,
+      };
+      setLeads([newLead, ...leads]);
+    }
+  };
 
   return (
     <AppLayout>
@@ -98,9 +133,17 @@ export default function Dashboard() {
               View all →
             </a>
           </div>
-          <LeadsTable leads={recentLeads} />
+          <LeadsTable leads={recentLeads} onEdit={handleEditLead} />
         </div>
       </div>
+
+      {/* Lead Form Dialog */}
+      <LeadFormDialog
+        open={isFormOpen}
+        onOpenChange={setIsFormOpen}
+        lead={editingLead}
+        onSave={handleSaveLead}
+      />
     </AppLayout>
   );
 }
