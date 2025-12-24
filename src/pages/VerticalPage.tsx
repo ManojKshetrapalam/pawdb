@@ -87,6 +87,14 @@ export default function VerticalPage() {
     }
   };
 
+  const handleConvert = (leadId: string) => {
+    setLeads(leads.map(l => 
+      l.id === leadId 
+        ? { ...l, status: 'converted' as const, updatedAt: new Date().toISOString() }
+        : l
+    ));
+  };
+
   return (
     <AppLayout>
       <Header 
@@ -133,6 +141,7 @@ export default function VerticalPage() {
           <LeadsTable 
             leads={verticalLeads} 
             onEdit={handleEditLead}
+            onConvert={handleConvert}
             showVertical={false}
           />
         </div>

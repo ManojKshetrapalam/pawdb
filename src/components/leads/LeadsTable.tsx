@@ -194,13 +194,6 @@ export function LeadsTable({ leads, onAssign, onConvert, onEdit, onPostLead, sho
                         </DropdownMenuItem>
                       )}
                       
-                      {lead.vertical === 'buy-leads' && lead.status === 'converted' && (
-                        <DropdownMenuItem>
-                          <Bell className="mr-2 h-4 w-4 text-warning" />
-                          Notify Vendors
-                        </DropdownMenuItem>
-                      )}
-                      
                       <DropdownMenuItem className="text-destructive">
                         <XCircle className="mr-2 h-4 w-4" />
                         Mark as Lost
