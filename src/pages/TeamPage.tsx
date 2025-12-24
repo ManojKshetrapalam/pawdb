@@ -9,7 +9,7 @@ import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { Button } from '@/components/ui/button';
-import { Shield, User as UserIcon, Pencil, Users, TrendingUp, CheckCircle, Download } from 'lucide-react';
+import { Shield, User as UserIcon, Pencil, Users, TrendingUp, CheckCircle, Download, DollarSign } from 'lucide-react';
 import { useCurrentUser } from '@/contexts/CurrentUserContext';
 import { StatCard } from '@/components/dashboard/StatCard';
 import { format } from 'date-fns';
@@ -71,11 +71,15 @@ export default function TeamPage() {
     toast.success('Team data exported successfully');
   };
 
+  // Mock revenue per converted lead
+  const REVENUE_PER_CONVERSION = 2500;
+
   // Team stats for vertical heads
   const teamStats = {
     totalMembers: members.length,
     totalAssigned: members.reduce((sum, m) => sum + m.assignedLeads, 0),
     totalConverted: members.reduce((sum, m) => sum + m.convertedLeads, 0),
+    totalRevenue: members.reduce((sum, m) => sum + (m.convertedLeads * REVENUE_PER_CONVERSION), 0),
     avgConversionRate: members.length > 0 
       ? Math.round(members.reduce((sum, m) => {
           const rate = m.assignedLeads > 0 ? (m.convertedLeads / m.assignedLeads) * 100 : 0;
@@ -134,7 +138,7 @@ export default function TeamPage() {
         ) : currentUser && (
           <div className="space-y-4">
             <h2 className="text-lg font-semibold text-foreground">My Performance</h2>
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
               <StatCard
                 title="My Assigned Leads"
                 value={currentUser.assignedLeads}
@@ -153,88 +157,101 @@ export default function TeamPage() {
                 icon={TrendingUp}
                 iconColor="text-primary"
               />
+              <StatCard
+                title="My Revenue"
+                value={`₹${(currentUser.convertedLeads * REVENUE_PER_CONVERSION).toLocaleString()}`}
+                icon={DollarSign}
+                iconColor="text-warning"
+              />
             </div>
           </div>
         )}
 
-        {/* Team Members Grid */}
-        <div>
-          <h2 className="text-lg font-semibold text-foreground mb-4">Team Members</h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {members.map((user, index) => {
-              const conversionRate = user.assignedLeads > 0 
-                ? Math.round((user.convertedLeads / user.assignedLeads) * 100)
-                : 0;
+        {/* Team Members Grid - only for admin and vertical heads */}
+        {isAdminOrVerticalHead && (
+          <div>
+            <h2 className="text-lg font-semibold text-foreground mb-4">Team Members</h2>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {members.map((user, index) => {
+                const conversionRate = user.assignedLeads > 0 
+                  ? Math.round((user.convertedLeads / user.assignedLeads) * 100)
+                  : 0;
+                const userRevenue = user.convertedLeads * REVENUE_PER_CONVERSION;
 
-              return (
-                <Card 
-                  key={user.id} 
-                  className="animate-fade-in group"
-                  style={{ animationDelay: `${index * 100}ms` }}
-                >
-                  <CardHeader className="pb-3">
-                    <div className="flex items-start justify-between">
-                      <div className="flex items-center gap-3">
-                        <Avatar className="h-12 w-12">
-                          <AvatarFallback className="bg-primary/10 text-primary text-lg">
-                            {user.name.split(' ').map((n) => n[0]).join('')}
-                          </AvatarFallback>
-                        </Avatar>
-                        <div>
-                          <h3 className="font-semibold text-card-foreground">{user.name}</h3>
-                          <p className="text-sm text-muted-foreground">{user.email}</p>
+                return (
+                  <Card 
+                    key={user.id} 
+                    className="animate-fade-in group"
+                    style={{ animationDelay: `${index * 100}ms` }}
+                  >
+                    <CardHeader className="pb-3">
+                      <div className="flex items-start justify-between">
+                        <div className="flex items-center gap-3">
+                          <Avatar className="h-12 w-12">
+                            <AvatarFallback className="bg-primary/10 text-primary text-lg">
+                              {user.name.split(' ').map((n) => n[0]).join('')}
+                            </AvatarFallback>
+                          </Avatar>
+                          <div>
+                            <h3 className="font-semibold text-card-foreground">{user.name}</h3>
+                            <p className="text-sm text-muted-foreground">{user.email}</p>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          {canManagePermissions && (
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity"
+                              onClick={() => handleEditClick(user)}
+                            >
+                              <Pencil className="h-4 w-4" />
+                            </Button>
+                          )}
+                          <Badge 
+                            variant={user.role === 'admin' ? 'default' : 'secondary'}
+                            className="gap-1"
+                          >
+                            {user.role === 'admin' ? (
+                              <Shield className="h-3 w-3" />
+                            ) : (
+                              <UserIcon className="h-3 w-3" />
+                            )}
+                            {user.role}
+                          </Badge>
                         </div>
                       </div>
-                      <div className="flex items-center gap-2">
-                        {canManagePermissions && (
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity"
-                            onClick={() => handleEditClick(user)}
-                          >
-                            <Pencil className="h-4 w-4" />
-                          </Button>
-                        )}
-                        <Badge 
-                          variant={user.role === 'admin' ? 'default' : 'secondary'}
-                          className="gap-1"
-                        >
-                          {user.role === 'admin' ? (
-                            <Shield className="h-3 w-3" />
-                          ) : (
-                            <UserIcon className="h-3 w-3" />
-                          )}
-                          {user.role}
-                        </Badge>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                      <div className="grid grid-cols-3 gap-2">
+                        <div className="rounded-lg bg-muted p-3">
+                          <p className="text-xl font-bold text-card-foreground">{user.assignedLeads}</p>
+                          <p className="text-xs text-muted-foreground">Assigned</p>
+                        </div>
+                        <div className="rounded-lg bg-success/10 p-3">
+                          <p className="text-xl font-bold text-success">{user.convertedLeads}</p>
+                          <p className="text-xs text-muted-foreground">Converted</p>
+                        </div>
+                        <div className="rounded-lg bg-warning/10 p-3">
+                          <p className="text-xl font-bold text-warning">₹{(userRevenue / 1000).toFixed(0)}K</p>
+                          <p className="text-xs text-muted-foreground">Revenue</p>
+                        </div>
                       </div>
-                    </div>
-                  </CardHeader>
-                  <CardContent className="space-y-4">
-                    <div className="grid grid-cols-2 gap-4">
-                      <div className="rounded-lg bg-muted p-3">
-                        <p className="text-2xl font-bold text-card-foreground">{user.assignedLeads}</p>
-                        <p className="text-xs text-muted-foreground">Assigned</p>
-                      </div>
-                      <div className="rounded-lg bg-success/10 p-3">
-                        <p className="text-2xl font-bold text-success">{user.convertedLeads}</p>
-                        <p className="text-xs text-muted-foreground">Converted</p>
-                      </div>
-                    </div>
 
-                    <div className="space-y-2">
-                      <div className="flex justify-between text-sm">
-                        <span className="text-muted-foreground">Conversion Rate</span>
-                        <span className="font-medium text-card-foreground">{conversionRate}%</span>
+                      <div className="space-y-2">
+                        <div className="flex justify-between text-sm">
+                          <span className="text-muted-foreground">Conversion Rate</span>
+                          <span className="font-medium text-card-foreground">{conversionRate}%</span>
+                        </div>
+                        <Progress value={conversionRate} className="h-2" />
                       </div>
-                      <Progress value={conversionRate} className="h-2" />
-                    </div>
-                  </CardContent>
-                </Card>
-              );
-            })}
+                    </CardContent>
+                  </Card>
+                );
+              })}
+            </div>
           </div>
-        </div>
+        )}
       </div>
 
       <TeamEditDialog
