@@ -22,7 +22,7 @@ import {
   DropdownMenuSubContent,
 } from '@/components/ui/dropdown-menu';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
-import { MoreHorizontal, UserPlus, Phone, Mail, CheckCircle, XCircle, Bell, Pencil } from 'lucide-react';
+import { MoreHorizontal, UserPlus, Phone, CheckCircle, XCircle, Bell, Pencil, MessageSquare } from 'lucide-react';
 import { format } from 'date-fns';
 import { toast } from 'sonner';
 
@@ -31,9 +31,10 @@ interface LeadsTableProps {
   onAssign?: (leadId: string, userId: string) => void;
   onConvert?: (leadId: string) => void;
   onEdit?: (lead: Lead) => void;
+  showVertical?: boolean;
 }
 
-export function LeadsTable({ leads, onAssign, onConvert, onEdit }: LeadsTableProps) {
+export function LeadsTable({ leads, onAssign, onConvert, onEdit, showVertical = true }: LeadsTableProps) {
   const getVerticalName = (verticalId: string) => {
     return VERTICALS.find((v) => v.id === verticalId)?.name || verticalId;
   };
@@ -41,6 +42,11 @@ export function LeadsTable({ leads, onAssign, onConvert, onEdit }: LeadsTablePro
   const getAssignedUser = (userId: string | null) => {
     if (!userId) return null;
     return mockUsers.find((u) => u.id === userId);
+  };
+
+  const getLastNote = (lead: Lead) => {
+    if (!lead.notes || lead.notes.length === 0) return null;
+    return lead.notes[lead.notes.length - 1];
   };
 
   const handleAssign = (leadId: string, userId: string) => {
@@ -68,16 +74,17 @@ export function LeadsTable({ leads, onAssign, onConvert, onEdit }: LeadsTablePro
         <TableHeader>
           <TableRow className="bg-muted/50 hover:bg-muted/50">
             <TableHead className="font-semibold">Lead</TableHead>
-            <TableHead className="font-semibold">Vertical</TableHead>
+            {showVertical && <TableHead className="font-semibold">Vertical</TableHead>}
             <TableHead className="font-semibold">Status</TableHead>
             <TableHead className="font-semibold">Assigned To</TableHead>
-            <TableHead className="font-semibold">Created</TableHead>
+            <TableHead className="font-semibold">Last Updated</TableHead>
             <TableHead className="font-semibold text-right">Actions</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
           {leads.map((lead, index) => {
             const assignedUser = getAssignedUser(lead.assignedTo);
+            const lastNote = getLastNote(lead);
             return (
               <TableRow 
                 key={lead.id} 
@@ -87,23 +94,25 @@ export function LeadsTable({ leads, onAssign, onConvert, onEdit }: LeadsTablePro
                 <TableCell>
                   <div>
                     <p className="font-medium text-card-foreground">{lead.name}</p>
-                    <div className="flex items-center gap-3 mt-1 text-sm text-muted-foreground">
-                      <span className="flex items-center gap-1">
-                        <Mail className="h-3 w-3" />
-                        {lead.email}
-                      </span>
-                      <span className="flex items-center gap-1">
-                        <Phone className="h-3 w-3" />
-                        {lead.phone}
-                      </span>
+                    <div className="flex items-center gap-1 mt-1 text-sm text-muted-foreground">
+                      <Phone className="h-3 w-3" />
+                      {lead.phone}
                     </div>
+                    {lastNote && (
+                      <div className="flex items-start gap-1 mt-2 text-sm">
+                        <MessageSquare className="h-3 w-3 mt-0.5 text-muted-foreground flex-shrink-0" />
+                        <span className="text-muted-foreground line-clamp-2">{lastNote.text}</span>
+                      </div>
+                    )}
                   </div>
                 </TableCell>
-                <TableCell>
-                  <span className="inline-flex items-center rounded-md bg-muted px-2 py-1 text-sm font-medium">
-                    {getVerticalName(lead.vertical)}
-                  </span>
-                </TableCell>
+                {showVertical && (
+                  <TableCell>
+                    <span className="inline-flex items-center rounded-md bg-muted px-2 py-1 text-sm font-medium">
+                      {getVerticalName(lead.vertical)}
+                    </span>
+                  </TableCell>
+                )}
                 <TableCell>
                   <LeadStatusBadge status={lead.status} />
                 </TableCell>
@@ -122,7 +131,7 @@ export function LeadsTable({ leads, onAssign, onConvert, onEdit }: LeadsTablePro
                   )}
                 </TableCell>
                 <TableCell className="text-muted-foreground">
-                  {format(new Date(lead.createdAt), 'MMM d, h:mm a')}
+                  {format(new Date(lead.updatedAt), 'MMM d, h:mm a')}
                 </TableCell>
                 <TableCell className="text-right">
                   <DropdownMenu>

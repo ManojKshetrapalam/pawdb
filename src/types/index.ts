@@ -11,6 +11,11 @@ export type LeadStatus = 'new' | 'contacted' | 'converted' | 'lost';
 
 export type LeadSource = 'meta' | 'google' | 'organic' | 'referral';
 
+export interface LeadNote {
+  text: string;
+  timestamp: string;
+}
+
 export interface Lead {
   id: string;
   name: string;
@@ -21,7 +26,8 @@ export interface Lead {
   source: LeadSource;
   assignedTo: string | null;
   createdAt: string;
-  notes?: string;
+  updatedAt: string;
+  notes: LeadNote[];
 }
 
 export interface User {

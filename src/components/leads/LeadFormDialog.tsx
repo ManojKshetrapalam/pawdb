@@ -1,10 +1,11 @@
 import { useState, useEffect } from 'react';
-import { Lead, VERTICALS, LeadStatus, LeadSource, Vertical } from '@/types';
+import { Lead, VERTICALS, LeadStatus, LeadSource, Vertical, LeadNote } from '@/types';
 import { mockUsers } from '@/data/mockData';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
+import { ScrollArea } from '@/components/ui/scroll-area';
 import {
   Dialog,
   DialogContent,
@@ -21,6 +22,8 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { toast } from 'sonner';
+import { format } from 'date-fns';
+import { Clock } from 'lucide-react';
 
 interface LeadFormDialogProps {
   open: boolean;
@@ -38,7 +41,7 @@ const initialFormState = {
   status: 'new' as LeadStatus,
   source: 'meta' as LeadSource,
   assignedTo: '',
-  notes: '',
+  newNote: '',
 };
 
 export function LeadFormDialog({ 
@@ -50,6 +53,7 @@ export function LeadFormDialog({
 }: LeadFormDialogProps) {
   const [formData, setFormData] = useState(initialFormState);
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const [existingNotes, setExistingNotes] = useState<LeadNote[]>([]);
 
   const isEditing = !!lead;
 
@@ -63,13 +67,15 @@ export function LeadFormDialog({
         status: lead.status,
         source: lead.source,
         assignedTo: lead.assignedTo || '',
-        notes: lead.notes || '',
+        newNote: '',
       });
+      setExistingNotes(lead.notes || []);
     } else {
       setFormData({
         ...initialFormState,
         vertical: defaultVertical || '',
       });
+      setExistingNotes([]);
     }
     setErrors({});
   }, [lead, defaultVertical, open]);
@@ -99,6 +105,18 @@ export function LeadFormDialog({
     return Object.keys(newErrors).length === 0;
   };
 
+  const handleNoteBlur = () => {
+    if (formData.newNote.trim()) {
+      const newNote: LeadNote = {
+        text: formData.newNote.trim(),
+        timestamp: new Date().toISOString(),
+      };
+      setExistingNotes([...existingNotes, newNote]);
+      setFormData({ ...formData, newNote: '' });
+      toast.success('Note saved');
+    }
+  };
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
 
@@ -107,10 +125,25 @@ export function LeadFormDialog({
       return;
     }
 
+    // Add any pending note
+    let finalNotes = [...existingNotes];
+    if (formData.newNote.trim()) {
+      finalNotes.push({
+        text: formData.newNote.trim(),
+        timestamp: new Date().toISOString(),
+      });
+    }
+
     onSave({
-      ...formData,
-      assignedTo: formData.assignedTo || null,
+      name: formData.name,
+      email: formData.email,
+      phone: formData.phone,
       vertical: formData.vertical as Vertical,
+      status: formData.status,
+      source: formData.source,
+      assignedTo: formData.assignedTo || null,
+      notes: finalNotes,
+      updatedAt: new Date().toISOString(),
     });
 
     toast.success(isEditing ? 'Lead updated successfully' : 'Lead created successfully');
@@ -119,7 +152,7 @@ export function LeadFormDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[525px]">
+      <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-hidden flex flex-col">
         <DialogHeader>
           <DialogTitle>{isEditing ? 'Edit Lead' : 'Create New Lead'}</DialogTitle>
           <DialogDescription>
@@ -129,148 +162,177 @@ export function LeadFormDialog({
           </DialogDescription>
         </DialogHeader>
 
-        <form onSubmit={handleSubmit} className="space-y-4 py-4">
-          {/* Name */}
-          <div className="space-y-2">
-            <Label htmlFor="name">Name *</Label>
-            <Input
-              id="name"
-              value={formData.name}
-              onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-              placeholder="Enter lead name"
-              className={errors.name ? 'border-destructive' : ''}
-            />
-            {errors.name && (
-              <p className="text-sm text-destructive">{errors.name}</p>
-            )}
-          </div>
+        <form onSubmit={handleSubmit} className="flex-1 overflow-hidden flex flex-col">
+          <ScrollArea className="flex-1 pr-4">
+            <div className="space-y-4 py-4">
+              {/* Name */}
+              <div className="space-y-2">
+                <Label htmlFor="name">Name *</Label>
+                <Input
+                  id="name"
+                  value={formData.name}
+                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                  placeholder="Enter lead name"
+                  className={errors.name ? 'border-destructive' : ''}
+                />
+                {errors.name && (
+                  <p className="text-sm text-destructive">{errors.name}</p>
+                )}
+              </div>
 
-          {/* Email & Phone */}
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="email">Email *</Label>
-              <Input
-                id="email"
-                type="email"
-                value={formData.email}
-                onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                placeholder="email@example.com"
-                className={errors.email ? 'border-destructive' : ''}
-              />
-              {errors.email && (
-                <p className="text-sm text-destructive">{errors.email}</p>
+              {/* Email & Phone */}
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="email">Email *</Label>
+                  <Input
+                    id="email"
+                    type="email"
+                    value={formData.email}
+                    onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                    placeholder="email@example.com"
+                    className={errors.email ? 'border-destructive' : ''}
+                  />
+                  {errors.email && (
+                    <p className="text-sm text-destructive">{errors.email}</p>
+                  )}
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="phone">Phone *</Label>
+                  <Input
+                    id="phone"
+                    value={formData.phone}
+                    onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                    placeholder="+91 98765 43210"
+                    className={errors.phone ? 'border-destructive' : ''}
+                  />
+                  {errors.phone && (
+                    <p className="text-sm text-destructive">{errors.phone}</p>
+                  )}
+                </div>
+              </div>
+
+              {/* Vertical & Status */}
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="vertical">Vertical *</Label>
+                  <Select
+                    value={formData.vertical}
+                    onValueChange={(value) => setFormData({ ...formData, vertical: value as Vertical })}
+                  >
+                    <SelectTrigger className={errors.vertical ? 'border-destructive' : ''}>
+                      <SelectValue placeholder="Select vertical" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {VERTICALS.map((v) => (
+                        <SelectItem key={v.id} value={v.id}>
+                          {v.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  {errors.vertical && (
+                    <p className="text-sm text-destructive">{errors.vertical}</p>
+                  )}
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="status">Status</Label>
+                  <Select
+                    value={formData.status}
+                    onValueChange={(value) => setFormData({ ...formData, status: value as LeadStatus })}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select status" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="new">New</SelectItem>
+                      <SelectItem value="contacted">Contacted</SelectItem>
+                      <SelectItem value="converted">Converted</SelectItem>
+                      <SelectItem value="lost">Lost</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+
+              {/* Source & Assigned To */}
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="source">Source</Label>
+                  <Select
+                    value={formData.source}
+                    onValueChange={(value) => setFormData({ ...formData, source: value as LeadSource })}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select source" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="meta">Meta (Facebook/Instagram)</SelectItem>
+                      <SelectItem value="google">Google Ads</SelectItem>
+                      <SelectItem value="organic">Organic</SelectItem>
+                      <SelectItem value="referral">Referral</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="assignedTo">Assign To</Label>
+                  <Select
+                    value={formData.assignedTo || 'unassigned'}
+                    onValueChange={(value) => setFormData({ ...formData, assignedTo: value === 'unassigned' ? '' : value })}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Unassigned" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="unassigned">Unassigned</SelectItem>
+                      {mockUsers.map((user) => (
+                        <SelectItem key={user.id} value={user.id}>
+                          {user.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+
+              {/* Previous Notes (Read-only) */}
+              {existingNotes.length > 0 && (
+                <div className="space-y-2">
+                  <Label>Previous Notes</Label>
+                  <div className="space-y-2 rounded-lg border border-border bg-muted/30 p-3">
+                    {existingNotes.map((note, index) => (
+                      <div 
+                        key={index} 
+                        className="rounded-md bg-background p-3 border border-border/50"
+                      >
+                        <p className="text-sm text-foreground">{note.text}</p>
+                        <div className="flex items-center gap-1 mt-2 text-xs text-muted-foreground">
+                          <Clock className="h-3 w-3" />
+                          {format(new Date(note.timestamp), 'MMM d, yyyy h:mm a')}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
               )}
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="phone">Phone *</Label>
-              <Input
-                id="phone"
-                value={formData.phone}
-                onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                placeholder="+91 98765 43210"
-                className={errors.phone ? 'border-destructive' : ''}
-              />
-              {errors.phone && (
-                <p className="text-sm text-destructive">{errors.phone}</p>
-              )}
-            </div>
-          </div>
 
-          {/* Vertical & Status */}
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="vertical">Vertical *</Label>
-              <Select
-                value={formData.vertical}
-                onValueChange={(value) => setFormData({ ...formData, vertical: value as Vertical })}
-              >
-                <SelectTrigger className={errors.vertical ? 'border-destructive' : ''}>
-                  <SelectValue placeholder="Select vertical" />
-                </SelectTrigger>
-                <SelectContent>
-                  {VERTICALS.map((v) => (
-                    <SelectItem key={v.id} value={v.id}>
-                      {v.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              {errors.vertical && (
-                <p className="text-sm text-destructive">{errors.vertical}</p>
-              )}
+              {/* New Note */}
+              <div className="space-y-2">
+                <Label htmlFor="newNote">Add New Note</Label>
+                <Textarea
+                  id="newNote"
+                  value={formData.newNote}
+                  onChange={(e) => setFormData({ ...formData, newNote: e.target.value })}
+                  onBlur={handleNoteBlur}
+                  placeholder="Add a note... (auto-saves when you click outside)"
+                  rows={3}
+                />
+                <p className="text-xs text-muted-foreground">
+                  Note will be saved with timestamp when you click outside the field
+                </p>
+              </div>
             </div>
-            <div className="space-y-2">
-              <Label htmlFor="status">Status</Label>
-              <Select
-                value={formData.status}
-                onValueChange={(value) => setFormData({ ...formData, status: value as LeadStatus })}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Select status" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="new">New</SelectItem>
-                  <SelectItem value="contacted">Contacted</SelectItem>
-                  <SelectItem value="converted">Converted</SelectItem>
-                  <SelectItem value="lost">Lost</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
+          </ScrollArea>
 
-          {/* Source & Assigned To */}
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="source">Source</Label>
-              <Select
-                value={formData.source}
-                onValueChange={(value) => setFormData({ ...formData, source: value as LeadSource })}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Select source" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="meta">Meta (Facebook/Instagram)</SelectItem>
-                  <SelectItem value="google">Google Ads</SelectItem>
-                  <SelectItem value="organic">Organic</SelectItem>
-                  <SelectItem value="referral">Referral</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="assignedTo">Assign To</Label>
-              <Select
-                value={formData.assignedTo || 'unassigned'}
-                onValueChange={(value) => setFormData({ ...formData, assignedTo: value === 'unassigned' ? '' : value })}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Unassigned" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="unassigned">Unassigned</SelectItem>
-                  {mockUsers.map((user) => (
-                    <SelectItem key={user.id} value={user.id}>
-                      {user.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-
-          {/* Notes */}
-          <div className="space-y-2">
-            <Label htmlFor="notes">Notes</Label>
-            <Textarea
-              id="notes"
-              value={formData.notes}
-              onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
-              placeholder="Add any additional notes about this lead..."
-              rows={3}
-            />
-          </div>
-
-          <DialogFooter className="pt-4">
+          <DialogFooter className="pt-4 border-t">
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
               Cancel
             </Button>

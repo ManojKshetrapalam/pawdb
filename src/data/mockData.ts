@@ -9,16 +9,16 @@ export const mockUsers: User[] = [
 ];
 
 export const mockLeads: Lead[] = [
-  { id: '1', name: 'Amit Kumar', email: 'amit@gmail.com', phone: '+91 98765 43210', vertical: 'app-b2b', status: 'new', source: 'meta', assignedTo: null, createdAt: '2024-01-15T10:30:00Z' },
-  { id: '2', name: 'Sneha Reddy', email: 'sneha@gmail.com', phone: '+91 87654 32109', vertical: 'wedding-course', status: 'contacted', source: 'meta', assignedTo: '2', createdAt: '2024-01-15T09:15:00Z' },
-  { id: '3', name: 'Rajesh Mehta', email: 'rajesh@gmail.com', phone: '+91 76543 21098', vertical: 'buy-leads', status: 'converted', source: 'meta', assignedTo: '3', createdAt: '2024-01-14T16:45:00Z' },
-  { id: '4', name: 'Pooja Nair', email: 'pooja@gmail.com', phone: '+91 65432 10987', vertical: 'honeymoon', status: 'new', source: 'meta', assignedTo: null, createdAt: '2024-01-15T11:00:00Z' },
-  { id: '5', name: 'Suresh Iyer', email: 'suresh@gmail.com', phone: '+91 54321 09876', vertical: 'app-b2c', status: 'contacted', source: 'meta', assignedTo: '4', createdAt: '2024-01-14T14:20:00Z' },
-  { id: '6', name: 'Kavitha Menon', email: 'kavitha@gmail.com', phone: '+91 43210 98765', vertical: 'wedding-sip', status: 'new', source: 'meta', assignedTo: null, createdAt: '2024-01-15T08:30:00Z' },
-  { id: '7', name: 'Arjun Verma', email: 'arjun@gmail.com', phone: '+91 32109 87654', vertical: 'hospitality', status: 'lost', source: 'meta', assignedTo: '5', createdAt: '2024-01-13T12:00:00Z' },
-  { id: '8', name: 'Divya Saxena', email: 'divya@gmail.com', phone: '+91 21098 76543', vertical: 'buy-leads', status: 'new', source: 'meta', assignedTo: null, createdAt: '2024-01-15T07:45:00Z' },
-  { id: '9', name: 'Kiran Rao', email: 'kiran@gmail.com', phone: '+91 10987 65432', vertical: 'wedding-course', status: 'converted', source: 'meta', assignedTo: '2', createdAt: '2024-01-12T15:30:00Z' },
-  { id: '10', name: 'Meera Joshi', email: 'meera@gmail.com', phone: '+91 09876 54321', vertical: 'app-b2b', status: 'contacted', source: 'meta', assignedTo: '1', createdAt: '2024-01-14T10:15:00Z' },
+  { id: '1', name: 'Amit Kumar', email: 'amit@gmail.com', phone: '+91 98765 43210', vertical: 'app-b2b', status: 'new', source: 'meta', assignedTo: null, createdAt: '2024-01-15T10:30:00Z', updatedAt: '2024-01-15T10:30:00Z', notes: [] },
+  { id: '2', name: 'Sneha Reddy', email: 'sneha@gmail.com', phone: '+91 87654 32109', vertical: 'wedding-course', status: 'contacted', source: 'meta', assignedTo: '2', createdAt: '2024-01-15T09:15:00Z', updatedAt: '2024-01-15T14:20:00Z', notes: [{ text: 'Interested in premium package', timestamp: '2024-01-15T14:20:00Z' }] },
+  { id: '3', name: 'Rajesh Mehta', email: 'rajesh@gmail.com', phone: '+91 76543 21098', vertical: 'buy-leads', status: 'converted', source: 'meta', assignedTo: '3', createdAt: '2024-01-14T16:45:00Z', updatedAt: '2024-01-15T11:00:00Z', notes: [{ text: 'Initial call completed', timestamp: '2024-01-14T18:00:00Z' }, { text: 'Converted successfully, sent to vendors', timestamp: '2024-01-15T11:00:00Z' }] },
+  { id: '4', name: 'Pooja Nair', email: 'pooja@gmail.com', phone: '+91 65432 10987', vertical: 'honeymoon', status: 'new', source: 'meta', assignedTo: null, createdAt: '2024-01-15T11:00:00Z', updatedAt: '2024-01-15T11:00:00Z', notes: [] },
+  { id: '5', name: 'Suresh Iyer', email: 'suresh@gmail.com', phone: '+91 54321 09876', vertical: 'app-b2c', status: 'contacted', source: 'meta', assignedTo: '4', createdAt: '2024-01-14T14:20:00Z', updatedAt: '2024-01-15T09:30:00Z', notes: [{ text: 'Needs callback tomorrow', timestamp: '2024-01-15T09:30:00Z' }] },
+  { id: '6', name: 'Kavitha Menon', email: 'kavitha@gmail.com', phone: '+91 43210 98765', vertical: 'wedding-sip', status: 'new', source: 'meta', assignedTo: null, createdAt: '2024-01-15T08:30:00Z', updatedAt: '2024-01-15T08:30:00Z', notes: [] },
+  { id: '7', name: 'Arjun Verma', email: 'arjun@gmail.com', phone: '+91 32109 87654', vertical: 'hospitality', status: 'lost', source: 'meta', assignedTo: '5', createdAt: '2024-01-13T12:00:00Z', updatedAt: '2024-01-14T16:00:00Z', notes: [{ text: 'Not interested at this time', timestamp: '2024-01-14T16:00:00Z' }] },
+  { id: '8', name: 'Divya Saxena', email: 'divya@gmail.com', phone: '+91 21098 76543', vertical: 'buy-leads', status: 'new', source: 'meta', assignedTo: null, createdAt: '2024-01-15T07:45:00Z', updatedAt: '2024-01-15T07:45:00Z', notes: [] },
+  { id: '9', name: 'Kiran Rao', email: 'kiran@gmail.com', phone: '+91 10987 65432', vertical: 'wedding-course', status: 'converted', source: 'meta', assignedTo: '2', createdAt: '2024-01-12T15:30:00Z', updatedAt: '2024-01-14T10:00:00Z', notes: [{ text: 'Enrolled in course', timestamp: '2024-01-14T10:00:00Z' }] },
+  { id: '10', name: 'Meera Joshi', email: 'meera@gmail.com', phone: '+91 09876 54321', vertical: 'app-b2b', status: 'contacted', source: 'meta', assignedTo: '1', createdAt: '2024-01-14T10:15:00Z', updatedAt: '2024-01-15T12:00:00Z', notes: [{ text: 'Demo scheduled for Friday', timestamp: '2024-01-15T12:00:00Z' }] },
 ];
 
 export const mockVendors: Vendor[] = [
