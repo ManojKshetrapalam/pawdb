@@ -2,7 +2,9 @@ import { useState } from 'react';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { Header } from '@/components/layout/Header';
 import { VendorCard } from '@/components/vendors/VendorCard';
+import { VendorDetailsDialog } from '@/components/vendors/VendorDetailsDialog';
 import { mockVendors } from '@/data/mockData';
+import { Vendor } from '@/types';
 import { Button } from '@/components/ui/button';
 import {
   Select,
@@ -16,6 +18,13 @@ import { Filter, Crown, Smartphone } from 'lucide-react';
 export default function VendorsPage() {
   const [subscriptionFilter, setSubscriptionFilter] = useState<string>('all');
   const [appFilter, setAppFilter] = useState<string>('all');
+  const [selectedVendor, setSelectedVendor] = useState<Vendor | null>(null);
+  const [isDetailsOpen, setIsDetailsOpen] = useState(false);
+
+  const handleViewDetails = (vendor: Vendor) => {
+    setSelectedVendor(vendor);
+    setIsDetailsOpen(true);
+  };
 
   const filteredVendors = mockVendors.filter((vendor) => {
     const subscriptionMatch =
@@ -101,11 +110,18 @@ export default function VendorsPage() {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
           {filteredVendors.map((vendor, index) => (
             <div key={vendor.id} style={{ animationDelay: `${index * 50}ms` }}>
-              <VendorCard vendor={vendor} />
+              <VendorCard vendor={vendor} onViewDetails={handleViewDetails} />
             </div>
           ))}
         </div>
       </div>
+
+      {/* Vendor Details Dialog */}
+      <VendorDetailsDialog
+        vendor={selectedVendor}
+        open={isDetailsOpen}
+        onOpenChange={setIsDetailsOpen}
+      />
     </AppLayout>
   );
 }
