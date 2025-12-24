@@ -1,6 +1,8 @@
+import { useState } from 'react';
 import { Lead, VERTICALS } from '@/types';
 import { mockUsers } from '@/data/mockData';
 import { LeadStatusBadge } from './LeadStatusBadge';
+import { PostLeadDialog, PostLeadData } from './PostLeadDialog';
 import { Button } from '@/components/ui/button';
 import {
   Table,
@@ -31,10 +33,13 @@ interface LeadsTableProps {
   onAssign?: (leadId: string, userId: string) => void;
   onConvert?: (leadId: string) => void;
   onEdit?: (lead: Lead) => void;
+  onPostLead?: (leadId: string, postData: PostLeadData) => void;
   showVertical?: boolean;
 }
 
-export function LeadsTable({ leads, onAssign, onConvert, onEdit, showVertical = true }: LeadsTableProps) {
+export function LeadsTable({ leads, onAssign, onConvert, onEdit, onPostLead, showVertical = true }: LeadsTableProps) {
+  const [postLeadDialogOpen, setPostLeadDialogOpen] = useState(false);
+  const [leadToPost, setLeadToPost] = useState<Lead | null>(null);
   const getVerticalName = (verticalId: string) => {
     return VERTICALS.find((v) => v.id === verticalId)?.name || verticalId;
   };
@@ -55,9 +60,21 @@ export function LeadsTable({ leads, onAssign, onConvert, onEdit, showVertical = 
     onAssign?.(leadId, userId);
   };
 
-  const handleConvert = (leadId: string) => {
-    toast.success('Lead converted! Notifying vendors...');
+  const handleConvert = (lead: Lead) => {
+    if (lead.vertical === 'buy-leads') {
+      // For buy-leads, open the post lead dialog
+      setLeadToPost(lead);
+      setPostLeadDialogOpen(true);
+    } else {
+      toast.success('Lead converted!');
+      onConvert?.(lead.id);
+    }
+  };
+
+  const handlePostLead = (leadId: string, postData: PostLeadData) => {
+    toast.success(`Lead posted to ${postData.vendorCategories.length} vendor categories!`);
     onConvert?.(leadId);
+    onPostLead?.(leadId, postData);
   };
 
   if (leads.length === 0) {
@@ -171,9 +188,9 @@ export function LeadsTable({ leads, onAssign, onConvert, onEdit, showVertical = 
                       <DropdownMenuSeparator />
                       
                       {lead.status !== 'converted' && (
-                        <DropdownMenuItem onClick={() => handleConvert(lead.id)}>
+                        <DropdownMenuItem onClick={() => handleConvert(lead)}>
                           <CheckCircle className="mr-2 h-4 w-4 text-success" />
-                          Mark Converted
+                          {lead.vertical === 'buy-leads' ? 'Convert & Post Lead' : 'Mark Converted'}
                         </DropdownMenuItem>
                       )}
                       
@@ -196,6 +213,13 @@ export function LeadsTable({ leads, onAssign, onConvert, onEdit, showVertical = 
           })}
         </TableBody>
       </Table>
+
+      <PostLeadDialog
+        open={postLeadDialogOpen}
+        onOpenChange={setPostLeadDialogOpen}
+        lead={leadToPost}
+        onPost={handlePostLead}
+      />
     </div>
   );
 }
