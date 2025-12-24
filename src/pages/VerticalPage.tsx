@@ -7,6 +7,7 @@ import { LeadFormDialog } from '@/components/leads/LeadFormDialog';
 import { StatCard } from '@/components/dashboard/StatCard';
 import { mockLeads } from '@/data/mockData';
 import { VERTICALS, Lead, Vertical } from '@/types';
+import { useFollowUpReminders } from '@/hooks/useFollowUpReminders';
 import { Users, TrendingUp, CheckCircle, XCircle } from 'lucide-react';
 
 export default function VerticalPage() {
@@ -18,6 +19,17 @@ export default function VerticalPage() {
   const [editingLead, setEditingLead] = useState<Lead | null>(null);
 
   const verticalLeads = leads.filter((l) => l.vertical === verticalId);
+
+  const handleEditLead = (lead: Lead) => {
+    setEditingLead(lead);
+    setIsFormOpen(true);
+  };
+
+  // Set up follow-up reminders
+  useFollowUpReminders({
+    leads: verticalLeads,
+    onLeadClick: handleEditLead,
+  });
 
   if (!vertical) {
     return (
@@ -41,11 +53,6 @@ export default function VerticalPage() {
     setIsFormOpen(true);
   };
 
-  const handleEditLead = (lead: Lead) => {
-    setEditingLead(lead);
-    setIsFormOpen(true);
-  };
-
   const handleSaveLead = (leadData: Partial<Lead>) => {
     if (editingLead) {
       setLeads(leads.map(l => 
@@ -66,6 +73,7 @@ export default function VerticalPage() {
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
         notes: leadData.notes || [],
+        followUpDate: leadData.followUpDate,
       };
       setLeads([newLead, ...leads]);
     }

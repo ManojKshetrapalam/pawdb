@@ -8,6 +8,7 @@ interface LeadStatusBadgeProps {
 const statusConfig: Record<LeadStatus, { label: string; className: string }> = {
   new: { label: 'New', className: 'status-new' },
   contacted: { label: 'Contacted', className: 'status-contacted' },
+  'follow-up': { label: 'Follow-up', className: 'status-followup' },
   converted: { label: 'Converted', className: 'status-converted' },
   lost: { label: 'Lost', className: 'status-lost' },
 };
