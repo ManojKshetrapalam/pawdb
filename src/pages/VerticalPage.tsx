@@ -187,6 +187,10 @@ export default function VerticalPage() {
             leads={verticalLeads} 
             onEdit={handleEditLead}
             onConvert={handleConvert}
+            onConvertWithSubscription={(lead) => {
+              setSubscriptionLead(lead);
+              setIsSubscriptionDialogOpen(true);
+            }}
             showVertical={false}
           />
         </div>
