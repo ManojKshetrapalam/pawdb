@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, ReactNode } from 'react';
-import { User, UserPermissions, DEFAULT_PERMISSIONS } from '@/types';
+import { User, UserPermissions } from '@/types';
 import { mockUsers } from '@/data/mockData';
 
 interface CurrentUserContextType {
@@ -11,7 +11,17 @@ interface CurrentUserContextType {
   availableUsers: User[];
 }
 
-const CurrentUserContext = createContext<CurrentUserContextType | undefined>(undefined);
+// Default context value for when used outside provider
+const defaultContextValue: CurrentUserContextType = {
+  currentUser: null,
+  setCurrentUser: () => {},
+  switchUser: () => {},
+  hasPermission: () => false,
+  canAccessVertical: () => false,
+  availableUsers: [],
+};
+
+const CurrentUserContext = createContext<CurrentUserContextType>(defaultContextValue);
 
 export const CurrentUserProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const [currentUser, setCurrentUser] = useState<User | null>(mockUsers[0]); // Default to first user (admin)
@@ -52,9 +62,5 @@ export const CurrentUserProvider: React.FC<{ children: ReactNode }> = ({ childre
 };
 
 export const useCurrentUser = (): CurrentUserContextType => {
-  const context = useContext(CurrentUserContext);
-  if (context === undefined) {
-    throw new Error('useCurrentUser must be used within a CurrentUserProvider');
-  }
-  return context;
+  return useContext(CurrentUserContext);
 };
