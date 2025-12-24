@@ -1,16 +1,20 @@
-import { useEffect, useRef, useCallback } from 'react';
+import { useEffect, useRef, useCallback, useState } from 'react';
 import { Lead } from '@/types';
-import { toast } from 'sonner';
-import { format } from 'date-fns';
 
 interface UseFollowUpRemindersProps {
   leads: Lead[];
   onLeadClick?: (lead: Lead) => void;
 }
 
+interface ReminderState {
+  lead: Lead;
+  minutesUntil: number;
+}
+
 export function useFollowUpReminders({ leads, onLeadClick }: UseFollowUpRemindersProps) {
   const notifiedLeads = useRef<Set<string>>(new Set());
   const checkIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const [reminderLead, setReminderLead] = useState<ReminderState | null>(null);
 
   const checkFollowUps = useCallback(() => {
     const now = new Date();
@@ -30,21 +34,11 @@ export function useFollowUpReminders({ leads, onLeadClick }: UseFollowUpReminder
           
           const minutesUntil = Math.round((followUpTime.getTime() - now.getTime()) / 60000);
           
-          toast.info(
-            `Follow-up Reminder: ${lead.name}`,
-            {
-              description: `Scheduled for ${format(followUpTime, 'h:mm a')} (in ${minutesUntil} min)`,
-              duration: 10000,
-              action: {
-                label: 'View Lead',
-                onClick: () => onLeadClick?.(lead),
-              },
-            }
-          );
+          setReminderLead({ lead, minutesUntil });
         }
       }
     });
-  }, [leads, onLeadClick]);
+  }, [leads]);
 
   useEffect(() => {
     // Check immediately on mount and when leads change
@@ -69,4 +63,21 @@ export function useFollowUpReminders({ leads, onLeadClick }: UseFollowUpReminder
       }
     });
   }, [leads]);
+
+  const dismissReminder = useCallback(() => {
+    setReminderLead(null);
+  }, []);
+
+  const handleViewLead = useCallback((lead: Lead) => {
+    onLeadClick?.(lead);
+    setReminderLead(null);
+  }, [onLeadClick]);
+
+  return {
+    reminderLead: reminderLead?.lead ?? null,
+    minutesUntil: reminderLead?.minutesUntil ?? 0,
+    isReminderOpen: reminderLead !== null,
+    dismissReminder,
+    handleViewLead,
+  };
 }
