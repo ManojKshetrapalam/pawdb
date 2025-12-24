@@ -1,13 +1,39 @@
+import { useState } from 'react';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { Header } from '@/components/layout/Header';
+import { TeamEditDialog } from '@/components/team/TeamEditDialog';
 import { mockUsers } from '@/data/mockData';
+import { User } from '@/types';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
-import { Shield, User } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Shield, User as UserIcon, Pencil } from 'lucide-react';
 
 export default function TeamPage() {
+  const [members, setMembers] = useState<User[]>(mockUsers);
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [editingMember, setEditingMember] = useState<User | null>(null);
+
+  const handleAddClick = () => {
+    setEditingMember(null);
+    setIsDialogOpen(true);
+  };
+
+  const handleEditClick = (member: User) => {
+    setEditingMember(member);
+    setIsDialogOpen(true);
+  };
+
+  const handleSaveMember = (member: User) => {
+    if (editingMember) {
+      setMembers(members.map(m => m.id === member.id ? member : m));
+    } else {
+      setMembers([...members, member]);
+    }
+  };
+
   return (
     <AppLayout>
       <Header 
@@ -15,11 +41,12 @@ export default function TeamPage() {
         subtitle="Manage your team members"
         showAddButton
         addButtonLabel="Add Member"
+        onAddClick={handleAddClick}
       />
       
       <div className="p-6">
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {mockUsers.map((user, index) => {
+          {members.map((user, index) => {
             const conversionRate = user.assignedLeads > 0 
               ? Math.round((user.convertedLeads / user.assignedLeads) * 100)
               : 0;
@@ -27,7 +54,7 @@ export default function TeamPage() {
             return (
               <Card 
                 key={user.id} 
-                className="animate-fade-in"
+                className="animate-fade-in group"
                 style={{ animationDelay: `${index * 100}ms` }}
               >
                 <CardHeader className="pb-3">
@@ -43,17 +70,27 @@ export default function TeamPage() {
                         <p className="text-sm text-muted-foreground">{user.email}</p>
                       </div>
                     </div>
-                    <Badge 
-                      variant={user.role === 'admin' ? 'default' : 'secondary'}
-                      className="gap-1"
-                    >
-                      {user.role === 'admin' ? (
-                        <Shield className="h-3 w-3" />
-                      ) : (
-                        <User className="h-3 w-3" />
-                      )}
-                      {user.role}
-                    </Badge>
+                    <div className="flex items-center gap-2">
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity"
+                        onClick={() => handleEditClick(user)}
+                      >
+                        <Pencil className="h-4 w-4" />
+                      </Button>
+                      <Badge 
+                        variant={user.role === 'admin' ? 'default' : 'secondary'}
+                        className="gap-1"
+                      >
+                        {user.role === 'admin' ? (
+                          <Shield className="h-3 w-3" />
+                        ) : (
+                          <UserIcon className="h-3 w-3" />
+                        )}
+                        {user.role}
+                      </Badge>
+                    </div>
                   </div>
                 </CardHeader>
                 <CardContent className="space-y-4">
@@ -81,6 +118,13 @@ export default function TeamPage() {
           })}
         </div>
       </div>
+
+      <TeamEditDialog
+        open={isDialogOpen}
+        onOpenChange={setIsDialogOpen}
+        member={editingMember}
+        onSave={handleSaveMember}
+      />
     </AppLayout>
   );
 }
