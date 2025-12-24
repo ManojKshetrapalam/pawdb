@@ -2,6 +2,8 @@ import { useState, useEffect } from 'react';
 import { Lead, VERTICALS, LeadStatus, LeadSource, Vertical, LeadNote } from '@/types';
 import { mockUsers } from '@/data/mockData';
 import { PostLeadDialog, PostLeadData } from './PostLeadDialog';
+import { SubscriptionSelectionDialog } from './SubscriptionSelectionDialog';
+import { usePricing } from '@/contexts/PricingContext';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -39,6 +41,7 @@ interface LeadFormDialogProps {
   lead?: Lead | null;
   onSave: (lead: Partial<Lead>) => void;
   onPostLead?: (leadId: string, postData: PostLeadData) => void;
+  onSubscriptionConvert?: (leadId: string, subscriptionType: 'quarterly' | 'halfYearly' | 'annual', isRenewal: boolean, price: number) => void;
   defaultVertical?: Vertical;
 }
 
@@ -61,13 +64,16 @@ export function LeadFormDialog({
   lead, 
   onSave,
   onPostLead,
+  onSubscriptionConvert,
   defaultVertical 
 }: LeadFormDialogProps) {
   const [formData, setFormData] = useState(initialFormState);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [existingNotes, setExistingNotes] = useState<LeadNote[]>([]);
   const [showPostLeadDialog, setShowPostLeadDialog] = useState(false);
+  const [showSubscriptionDialog, setShowSubscriptionDialog] = useState(false);
   const [pendingLeadData, setPendingLeadData] = useState<Partial<Lead> | null>(null);
+  const { addConvertedSubscription } = usePricing();
 
   const isEditing = !!lead;
 
@@ -184,6 +190,10 @@ export function LeadFormDialog({
       // Store the lead data and show post lead dialog
       setPendingLeadData(leadData);
       setShowPostLeadDialog(true);
+    } else if ((formData.vertical === 'app-b2b' || formData.vertical === 'app-b2c') && formData.status === 'converted') {
+      // Store the lead data and show subscription dialog
+      setPendingLeadData(leadData);
+      setShowSubscriptionDialog(true);
     } else {
       onSave(leadData);
       toast.success(isEditing ? 'Lead updated successfully' : 'Lead created successfully');
@@ -201,8 +211,39 @@ export function LeadFormDialog({
     }
   };
 
+  const handleSubscriptionConfirm = (
+    subscriptionType: 'quarterly' | 'halfYearly' | 'annual', 
+    isRenewal: boolean, 
+    price: number
+  ) => {
+    if (pendingLeadData) {
+      onSave(pendingLeadData);
+      
+      // Add to converted subscriptions
+      addConvertedSubscription({
+        leadId: lead?.id || 'new',
+        leadName: formData.name,
+        appType: formData.vertical as 'app-b2b' | 'app-b2c',
+        subscriptionType,
+        isRenewal,
+        price,
+        duration: subscriptionType === 'quarterly' ? 3 : subscriptionType === 'halfYearly' ? 6 : 12,
+      });
+      
+      onSubscriptionConvert?.(lead?.id || 'new', subscriptionType, isRenewal, price);
+      toast.success('Lead converted with subscription!');
+      setPendingLeadData(null);
+      onOpenChange(false);
+    }
+  };
+
   const handlePostLeadCancel = () => {
     setShowPostLeadDialog(false);
+    setPendingLeadData(null);
+  };
+
+  const handleSubscriptionCancel = () => {
+    setShowSubscriptionDialog(false);
     setPendingLeadData(null);
   };
 
@@ -472,6 +513,14 @@ export function LeadFormDialog({
         onOpenChange={handlePostLeadCancel}
         lead={lead || { id: 'new', name: formData.name, email: formData.email, phone: formData.phone } as Lead}
         onPost={handlePostLead}
+      />
+
+      {/* Subscription Selection Dialog for B2B/B2C conversion */}
+      <SubscriptionSelectionDialog
+        open={showSubscriptionDialog}
+        onOpenChange={handleSubscriptionCancel}
+        lead={lead || { id: 'new', name: formData.name, email: formData.email, phone: formData.phone, vertical: formData.vertical } as Lead}
+        onConfirm={handleSubscriptionConfirm}
       />
     </Dialog>
   );
