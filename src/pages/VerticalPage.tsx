@@ -6,13 +6,12 @@ import { LeadsTable } from '@/components/leads/LeadsTable';
 import { LeadFormDialog } from '@/components/leads/LeadFormDialog';
 import { FollowUpReminderDialog } from '@/components/leads/FollowUpReminderDialog';
 import { SubscriptionSelectionDialog } from '@/components/leads/SubscriptionSelectionDialog';
-import { StatCard } from '@/components/dashboard/StatCard';
+import { VerticalStats } from '@/components/dashboard/VerticalStats';
 import { mockLeads } from '@/data/mockData';
 import { VERTICALS, Lead, Vertical } from '@/types';
 import { useFollowUpReminders } from '@/hooks/useFollowUpReminders';
 import { useMarketplace } from '@/contexts/MarketplaceContext';
 import { usePricing } from '@/contexts/PricingContext';
-import { Users, TrendingUp, CheckCircle, XCircle } from 'lucide-react';
 
 export default function VerticalPage() {
   const { verticalId } = useParams<{ verticalId: string }>();
@@ -56,12 +55,6 @@ export default function VerticalPage() {
     );
   }
 
-  const stats = {
-    total: verticalLeads.length,
-    new: verticalLeads.filter((l) => l.status === 'new').length,
-    converted: verticalLeads.filter((l) => l.status === 'converted').length,
-    lost: verticalLeads.filter((l) => l.status === 'lost').length,
-  };
 
   const handleAddClick = () => {
     setEditingLead(null);
@@ -152,33 +145,7 @@ export default function VerticalPage() {
       
       <div className="p-6 space-y-6">
         {/* Stats */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-          <StatCard
-            title="Total Leads"
-            value={stats.total}
-            icon={Users}
-          />
-          <StatCard
-            title="New"
-            value={stats.new}
-            change="Needs attention"
-            changeType="neutral"
-            icon={TrendingUp}
-            iconColor="text-info"
-          />
-          <StatCard
-            title="Converted"
-            value={stats.converted}
-            icon={CheckCircle}
-            iconColor="text-success"
-          />
-          <StatCard
-            title="Lost"
-            value={stats.lost}
-            icon={XCircle}
-            iconColor="text-destructive"
-          />
-        </div>
+        <VerticalStats verticalId={verticalId!} leads={verticalLeads} />
 
         {/* Leads Table - hide vertical column since we're already in a vertical */}
         <div>
