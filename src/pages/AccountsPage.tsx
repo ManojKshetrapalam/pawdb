@@ -122,60 +122,62 @@ export default function AccountsPage() {
         </CardHeader>
         <CardContent className="space-y-4">
           {(['quarterly', 'halfYearly', 'annual'] as const).map((type) => (
-            <div key={type} className="flex items-center gap-4 p-3 rounded-lg border border-border">
-              <Switch
-                checked={pricing.renewal[type].enabled}
-                onCheckedChange={(checked) => 
-                  setPricing({
-                    ...pricing,
-                    renewal: {
-                      ...pricing.renewal,
-                      [type]: { ...pricing.renewal[type], enabled: checked }
-                    }
-                  })
-                }
-              />
-              <div className="flex-1">
-                <Label className="capitalize font-medium">
+            <div key={type} className="flex flex-col sm:flex-row sm:items-center gap-3 p-3 rounded-lg border border-border">
+              <div className="flex items-center gap-3">
+                <Switch
+                  checked={pricing.renewal[type].enabled}
+                  onCheckedChange={(checked) => 
+                    setPricing({
+                      ...pricing,
+                      renewal: {
+                        ...pricing.renewal,
+                        [type]: { ...pricing.renewal[type], enabled: checked }
+                      }
+                    })
+                  }
+                />
+                <Label className="capitalize font-medium min-w-[80px]">
                   {type === 'halfYearly' ? 'Half Yearly' : type}
                 </Label>
               </div>
-              <div className="flex items-center gap-2">
-                <Label className="text-sm text-muted-foreground">Duration</Label>
-                <Input
-                  type="number"
-                  value={pricing.renewal[type].duration}
-                  onChange={(e) => 
-                    setPricing({
-                      ...pricing,
-                      renewal: {
-                        ...pricing.renewal,
-                        [type]: { ...pricing.renewal[type], duration: Number(e.target.value) }
-                      }
-                    })
-                  }
-                  className="w-20"
-                  disabled={!pricing.renewal[type].enabled}
-                />
-                <span className="text-sm text-muted-foreground">months</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <IndianRupee className="h-4 w-4 text-muted-foreground" />
-                <Input
-                  type="number"
-                  value={pricing.renewal[type].price}
-                  onChange={(e) => 
-                    setPricing({
-                      ...pricing,
-                      renewal: {
-                        ...pricing.renewal,
-                        [type]: { ...pricing.renewal[type], price: Number(e.target.value) }
-                      }
-                    })
-                  }
-                  className="w-28"
-                  disabled={!pricing.renewal[type].enabled}
-                />
+              <div className="flex flex-wrap items-center gap-2 sm:ml-auto">
+                <div className="flex items-center gap-1">
+                  <Label className="text-xs text-muted-foreground whitespace-nowrap">Duration</Label>
+                  <Input
+                    type="number"
+                    value={pricing.renewal[type].duration}
+                    onChange={(e) => 
+                      setPricing({
+                        ...pricing,
+                        renewal: {
+                          ...pricing.renewal,
+                          [type]: { ...pricing.renewal[type], duration: Number(e.target.value) }
+                        }
+                      })
+                    }
+                    className="w-16"
+                    disabled={!pricing.renewal[type].enabled}
+                  />
+                  <span className="text-xs text-muted-foreground">mo</span>
+                </div>
+                <div className="flex items-center gap-1">
+                  <IndianRupee className="h-3 w-3 text-muted-foreground" />
+                  <Input
+                    type="number"
+                    value={pricing.renewal[type].price}
+                    onChange={(e) => 
+                      setPricing({
+                        ...pricing,
+                        renewal: {
+                          ...pricing.renewal,
+                          [type]: { ...pricing.renewal[type], price: Number(e.target.value) }
+                        }
+                      })
+                    }
+                    className="w-24"
+                    disabled={!pricing.renewal[type].enabled}
+                  />
+                </div>
               </div>
             </div>
           ))}
