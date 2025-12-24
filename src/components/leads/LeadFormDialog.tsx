@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Lead, VERTICALS, LeadStatus, LeadSource, Vertical, LeadNote } from '@/types';
 import { mockUsers } from '@/data/mockData';
+import { PostLeadDialog, PostLeadData } from './PostLeadDialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -37,6 +38,7 @@ interface LeadFormDialogProps {
   onOpenChange: (open: boolean) => void;
   lead?: Lead | null;
   onSave: (lead: Partial<Lead>) => void;
+  onPostLead?: (leadId: string, postData: PostLeadData) => void;
   defaultVertical?: Vertical;
 }
 
@@ -58,11 +60,14 @@ export function LeadFormDialog({
   onOpenChange, 
   lead, 
   onSave,
+  onPostLead,
   defaultVertical 
 }: LeadFormDialogProps) {
   const [formData, setFormData] = useState(initialFormState);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [existingNotes, setExistingNotes] = useState<LeadNote[]>([]);
+  const [showPostLeadDialog, setShowPostLeadDialog] = useState(false);
+  const [pendingLeadData, setPendingLeadData] = useState<Partial<Lead> | null>(null);
 
   const isEditing = !!lead;
 
@@ -161,7 +166,7 @@ export function LeadFormDialog({
       followUpDateTime = dateTime.toISOString();
     }
 
-    onSave({
+    const leadData: Partial<Lead> = {
       name: formData.name,
       email: formData.email,
       phone: formData.phone,
@@ -172,10 +177,33 @@ export function LeadFormDialog({
       notes: finalNotes,
       updatedAt: new Date().toISOString(),
       followUpDate: followUpDateTime,
-    });
+    };
 
-    toast.success(isEditing ? 'Lead updated successfully' : 'Lead created successfully');
-    onOpenChange(false);
+    // Check if this is a buy-lead being converted
+    if (formData.vertical === 'buy-leads' && formData.status === 'converted') {
+      // Store the lead data and show post lead dialog
+      setPendingLeadData(leadData);
+      setShowPostLeadDialog(true);
+    } else {
+      onSave(leadData);
+      toast.success(isEditing ? 'Lead updated successfully' : 'Lead created successfully');
+      onOpenChange(false);
+    }
+  };
+
+  const handlePostLead = (leadId: string, postData: PostLeadData) => {
+    if (pendingLeadData) {
+      onSave(pendingLeadData);
+      onPostLead?.(lead?.id || leadId, postData);
+      toast.success('Lead converted and posted to vendors!');
+      setPendingLeadData(null);
+      onOpenChange(false);
+    }
+  };
+
+  const handlePostLeadCancel = () => {
+    setShowPostLeadDialog(false);
+    setPendingLeadData(null);
   };
 
   const timeOptions = [];
@@ -437,6 +465,14 @@ export function LeadFormDialog({
           </DialogFooter>
         </form>
       </DialogContent>
+
+      {/* Post Lead Dialog for buy-leads conversion */}
+      <PostLeadDialog
+        open={showPostLeadDialog}
+        onOpenChange={handlePostLeadCancel}
+        lead={lead || { id: 'new', name: formData.name, email: formData.email, phone: formData.phone } as Lead}
+        onPost={handlePostLead}
+      />
     </Dialog>
   );
 }
