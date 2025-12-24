@@ -4,9 +4,11 @@ import { Header } from '@/components/layout/Header';
 import { LeadsTable } from '@/components/leads/LeadsTable';
 import { LeadFormDialog } from '@/components/leads/LeadFormDialog';
 import { FollowUpReminderDialog } from '@/components/leads/FollowUpReminderDialog';
+import { SubscriptionSelectionDialog } from '@/components/leads/SubscriptionSelectionDialog';
 import { mockLeads } from '@/data/mockData';
 import { VERTICALS, Lead } from '@/types';
 import { useFollowUpReminders } from '@/hooks/useFollowUpReminders';
+import { usePricing } from '@/contexts/PricingContext';
 import { Button } from '@/components/ui/button';
 import {
   Select,
@@ -16,6 +18,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Filter } from 'lucide-react';
+import { toast } from 'sonner';
 
 export default function LeadsPage() {
   const [statusFilter, setStatusFilter] = useState<string>('all');
@@ -23,6 +26,9 @@ export default function LeadsPage() {
   const [leads, setLeads] = useState<Lead[]>(mockLeads);
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingLead, setEditingLead] = useState<Lead | null>(null);
+  const [subscriptionLead, setSubscriptionLead] = useState<Lead | null>(null);
+  const [isSubscriptionDialogOpen, setIsSubscriptionDialogOpen] = useState(false);
+  const { addConvertedSubscription } = usePricing();
 
   const filteredLeads = leads.filter((lead) => {
     const statusMatch = statusFilter === 'all' || lead.status === statusFilter;
@@ -79,6 +85,48 @@ export default function LeadsPage() {
       };
       setLeads([newLead, ...leads]);
     }
+  };
+
+  const handleConvert = (leadId: string) => {
+    setLeads(leads.map(l => 
+      l.id === leadId 
+        ? { ...l, status: 'converted' as const, updatedAt: new Date().toISOString() }
+        : l
+    ));
+  };
+
+  const handleConvertWithSubscription = (lead: Lead) => {
+    setSubscriptionLead(lead);
+    setIsSubscriptionDialogOpen(true);
+  };
+
+  const handleSubscriptionConfirm = (
+    subscriptionType: 'quarterly' | 'halfYearly' | 'annual', 
+    isRenewal: boolean, 
+    price: number
+  ) => {
+    if (!subscriptionLead) return;
+
+    // Mark lead as converted
+    setLeads(leads.map(l => 
+      l.id === subscriptionLead.id 
+        ? { ...l, status: 'converted' as const, updatedAt: new Date().toISOString() }
+        : l
+    ));
+
+    // Add to converted subscriptions
+    addConvertedSubscription({
+      leadId: subscriptionLead.id,
+      leadName: subscriptionLead.name,
+      appType: subscriptionLead.vertical as 'app-b2b' | 'app-b2c',
+      subscriptionType,
+      isRenewal,
+      price,
+      duration: subscriptionType === 'quarterly' ? 3 : subscriptionType === 'halfYearly' ? 6 : 12,
+    });
+
+    toast.success('Lead converted with subscription!');
+    setSubscriptionLead(null);
   };
 
   return (
@@ -145,6 +193,8 @@ export default function LeadsPage() {
         <LeadsTable 
           leads={filteredLeads} 
           onEdit={handleEditLead}
+          onConvert={handleConvert}
+          onConvertWithSubscription={handleConvertWithSubscription}
         />
       </div>
 
@@ -164,6 +214,14 @@ export default function LeadsPage() {
         onViewLead={handleViewLead}
         onSnooze={handleSnooze}
         minutesUntil={minutesUntil}
+      />
+
+      {/* Subscription Selection Dialog for B2B/B2C */}
+      <SubscriptionSelectionDialog
+        open={isSubscriptionDialogOpen}
+        onOpenChange={setIsSubscriptionDialogOpen}
+        lead={subscriptionLead}
+        onConfirm={handleSubscriptionConfirm}
       />
     </AppLayout>
   );

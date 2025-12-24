@@ -30,11 +30,12 @@ interface LeadsTableProps {
   leads: Lead[];
   onAssign?: (leadId: string, userId: string) => void;
   onConvert?: (leadId: string) => void;
+  onConvertWithSubscription?: (lead: Lead) => void;
   onEdit?: (lead: Lead) => void;
   showVertical?: boolean;
 }
 
-export function LeadsTable({ leads, onAssign, onConvert, onEdit, showVertical = true }: LeadsTableProps) {
+export function LeadsTable({ leads, onAssign, onConvert, onConvertWithSubscription, onEdit, showVertical = true }: LeadsTableProps) {
   const getVerticalName = (verticalId: string) => {
     return VERTICALS.find((v) => v.id === verticalId)?.name || verticalId;
   };
@@ -61,6 +62,15 @@ export function LeadsTable({ leads, onAssign, onConvert, onEdit, showVertical = 
       // which will trigger the post lead dialog
       onEdit?.(lead);
       toast.info('Set status to "Converted" to post this lead');
+    } else if (lead.vertical === 'app-b2b' || lead.vertical === 'app-b2c') {
+      // For B2B/B2C apps, show subscription selection dialog
+      if (onConvertWithSubscription) {
+        onConvertWithSubscription(lead);
+      } else {
+        // Fallback if no subscription handler
+        toast.success('Lead converted!');
+        onConvert?.(lead.id);
+      }
     } else {
       toast.success('Lead converted!');
       onConvert?.(lead.id);
