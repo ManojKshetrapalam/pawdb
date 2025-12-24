@@ -188,8 +188,8 @@ export function LeadFormDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-hidden flex flex-col">
-        <DialogHeader>
+      <DialogContent className="sm:max-w-[600px] max-h-[85vh] flex flex-col">
+        <DialogHeader className="flex-shrink-0">
           <DialogTitle>{isEditing ? 'Edit Lead' : 'Create New Lead'}</DialogTitle>
           <DialogDescription>
             {isEditing 
@@ -198,9 +198,9 @@ export function LeadFormDialog({
           </DialogDescription>
         </DialogHeader>
 
-        <form onSubmit={handleSubmit} className="flex-1 overflow-hidden flex flex-col">
-          <ScrollArea className="flex-1 pr-4">
-            <div className="space-y-4 py-4">
+        <form onSubmit={handleSubmit} className="flex-1 flex flex-col min-h-0 overflow-hidden">
+          <div className="flex-1 overflow-y-auto pr-2 min-h-0">
+            <div className="space-y-4 py-4 pb-6">
               {/* Name */}
               <div className="space-y-2">
                 <Label htmlFor="name">Name *</Label>
@@ -425,7 +425,7 @@ export function LeadFormDialog({
                 </p>
               </div>
             </div>
-          </ScrollArea>
+          </div>
 
           <DialogFooter className="pt-4 border-t">
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
