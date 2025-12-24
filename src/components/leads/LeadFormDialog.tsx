@@ -195,7 +195,7 @@ export function LeadFormDialog({
     if (pendingLeadData) {
       onSave(pendingLeadData);
       onPostLead?.(lead?.id || leadId, postData);
-      toast.success('Lead converted and posted to vendors!');
+      toast.success('Lead converted and posted to marketplace!');
       setPendingLeadData(null);
       onOpenChange(false);
     }
