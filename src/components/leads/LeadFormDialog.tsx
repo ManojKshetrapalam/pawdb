@@ -240,14 +240,14 @@ export function LeadFormDialog({
             <div className="space-y-2">
               <Label htmlFor="assignedTo">Assign To</Label>
               <Select
-                value={formData.assignedTo}
-                onValueChange={(value) => setFormData({ ...formData, assignedTo: value })}
+                value={formData.assignedTo || 'unassigned'}
+                onValueChange={(value) => setFormData({ ...formData, assignedTo: value === 'unassigned' ? '' : value })}
               >
                 <SelectTrigger>
                   <SelectValue placeholder="Unassigned" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">Unassigned</SelectItem>
+                  <SelectItem value="unassigned">Unassigned</SelectItem>
                   {mockUsers.map((user) => (
                     <SelectItem key={user.id} value={user.id}>
                       {user.name}
