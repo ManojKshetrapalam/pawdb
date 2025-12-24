@@ -40,13 +40,13 @@ export function Header({ title, subtitle, showAddButton, onAddClick, addButtonLa
   };
 
   return (
-    <header className="sticky top-0 z-30 flex h-16 items-center justify-between border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 px-6">
-      <div>
-        <h1 className="text-xl font-semibold text-foreground">{title}</h1>
-        {subtitle && <p className="text-sm text-muted-foreground">{subtitle}</p>}
+    <header className="sticky top-0 z-30 flex h-16 items-center justify-between border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 px-4 sm:px-6">
+      <div className="pl-10 lg:pl-0 min-w-0">
+        <h1 className="text-lg sm:text-xl font-semibold text-foreground truncate">{title}</h1>
+        {subtitle && <p className="text-xs sm:text-sm text-muted-foreground truncate">{subtitle}</p>}
       </div>
 
-      <div className="flex items-center gap-4">
+      <div className="flex items-center gap-2 sm:gap-4">
         {/* Search */}
         <div className="relative hidden md:block">
           <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
@@ -59,9 +59,9 @@ export function Header({ title, subtitle, showAddButton, onAddClick, addButtonLa
 
         {/* Add Button - only show if user has permission */}
         {showAddButton && hasPermission('canAddLeads') && (
-          <Button onClick={onAddClick} size="sm" className="gap-2">
+          <Button onClick={onAddClick} size="sm" className="gap-1 sm:gap-2 text-xs sm:text-sm px-2 sm:px-3">
             <Plus className="h-4 w-4" />
-            {addButtonLabel}
+            <span className="hidden sm:inline">{addButtonLabel}</span>
           </Button>
         )}
 

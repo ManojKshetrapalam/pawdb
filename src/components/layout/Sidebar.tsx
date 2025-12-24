@@ -33,7 +33,12 @@ const iconMap: Record<string, React.ComponentType<{ className?: string }>> = {
   Hotel,
 };
 
-export function Sidebar() {
+interface SidebarProps {
+  isOpen: boolean;
+  onClose: () => void;
+}
+
+export function Sidebar({ isOpen, onClose }: SidebarProps) {
   const location = useLocation();
   const [isVerticalsOpen, setIsVerticalsOpen] = useState(true);
   const { currentUser, canAccessVertical, hasPermission } = useCurrentUser();
@@ -49,8 +54,18 @@ export function Sidebar() {
   const canViewAccounts = currentUser?.role === 'admin' || currentUser?.role === 'vertical-head';
   const canViewUserAccess = currentUser?.role === 'admin' || currentUser?.role === 'vertical-head' || hasPermission('canManagePermissions');
 
+  const handleLinkClick = () => {
+    onClose();
+  };
+
   return (
-    <aside className="fixed left-0 top-0 z-40 h-screen w-64 bg-sidebar border-r border-sidebar-border">
+    <aside 
+      className={cn(
+        "fixed left-0 top-0 z-50 h-screen w-64 bg-sidebar border-r border-sidebar-border transition-transform duration-300 ease-in-out",
+        "lg:translate-x-0",
+        isOpen ? "translate-x-0" : "-translate-x-full"
+      )}
+    >
       <div className="flex h-full flex-col">
         {/* Logo */}
         <div className="flex h-16 items-center gap-2 border-b border-sidebar-border px-6">
@@ -65,6 +80,7 @@ export function Sidebar() {
           <div className="space-y-1">
             <Link
               to="/"
+              onClick={handleLinkClick}
               className={cn(
                 'flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors',
                 isActive('/')
@@ -102,6 +118,7 @@ export function Sidebar() {
                         <Link
                           key={vertical.id}
                           to={`/verticals/${vertical.id}`}
+                          onClick={handleLinkClick}
                           className={cn(
                             'flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-colors',
                             isVerticalActive(vertical.id)
@@ -123,6 +140,7 @@ export function Sidebar() {
             {accessibleVerticals.length > 0 && (
               <Link
                 to="/leads"
+                onClick={handleLinkClick}
                 className={cn(
                   'flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors',
                   isActive('/leads')
@@ -137,6 +155,7 @@ export function Sidebar() {
 
             <Link
               to="/marketplace"
+              onClick={handleLinkClick}
               className={cn(
                 'flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors',
                 isActive('/marketplace')
@@ -150,6 +169,7 @@ export function Sidebar() {
 
             <Link
               to="/vendors"
+              onClick={handleLinkClick}
               className={cn(
                 'flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors',
                 isActive('/vendors')
@@ -165,6 +185,7 @@ export function Sidebar() {
             {canManageTeam && (
               <Link
                 to="/team"
+                onClick={handleLinkClick}
                 className={cn(
                   'flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors',
                   isActive('/team')
@@ -181,6 +202,7 @@ export function Sidebar() {
             {canViewUserAccess && (
               <Link
                 to="/user-access"
+                onClick={handleLinkClick}
                 className={cn(
                   'flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors',
                   isActive('/user-access')
@@ -197,6 +219,7 @@ export function Sidebar() {
             {canViewAccounts && (
               <Link
                 to="/accounts"
+                onClick={handleLinkClick}
                 className={cn(
                   'flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors',
                   isActive('/accounts')
@@ -216,6 +239,7 @@ export function Sidebar() {
           <div className="space-y-1">
             <Link
               to="/notifications"
+              onClick={handleLinkClick}
               className={cn(
                 'flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors',
                 isActive('/notifications')
@@ -228,6 +252,7 @@ export function Sidebar() {
             </Link>
             <Link
               to="/settings"
+              onClick={handleLinkClick}
               className={cn(
                 'flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors',
                 isActive('/settings')
