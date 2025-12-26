@@ -3,7 +3,7 @@ import { AppLayout } from '@/components/layout/AppLayout';
 import { Header } from '@/components/layout/Header';
 import { VendorCard } from '@/components/vendors/VendorCard';
 import { VendorDetailsDialog } from '@/components/vendors/VendorDetailsDialog';
-import { mockVendors } from '@/data/mockData';
+import { useVendors, useVendorStats } from '@/hooks/useVendors';
 import { Vendor } from '@/types';
 import { Button } from '@/components/ui/button';
 import {
@@ -13,20 +13,23 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { Filter, Crown, Smartphone } from 'lucide-react';
+import { Filter, Crown, Smartphone, Loader2 } from 'lucide-react';
 
 export default function VendorsPage() {
   const [subscriptionFilter, setSubscriptionFilter] = useState<string>('all');
   const [appFilter, setAppFilter] = useState<string>('all');
   const [selectedVendor, setSelectedVendor] = useState<Vendor | null>(null);
   const [isDetailsOpen, setIsDetailsOpen] = useState(false);
+  
+  const { data: vendors = [], isLoading } = useVendors();
+  const { data: vendorStats } = useVendorStats();
 
   const handleViewDetails = (vendor: Vendor) => {
     setSelectedVendor(vendor);
     setIsDetailsOpen(true);
   };
 
-  const filteredVendors = mockVendors.filter((vendor) => {
+  const filteredVendors = vendors.filter((vendor) => {
     const subscriptionMatch =
       subscriptionFilter === 'all' ||
       (subscriptionFilter === 'subscribed' && vendor.isSubscribed) ||
@@ -38,14 +41,26 @@ export default function VendorsPage() {
     return subscriptionMatch && appMatch;
   });
 
-  const subscribedCount = mockVendors.filter((v) => v.isSubscribed).length;
-  const withAppCount = mockVendors.filter((v) => v.hasApp).length;
+  const subscribedCount = vendorStats?.subscribed || vendors.filter((v) => v.isSubscribed).length;
+  const withAppCount = vendors.filter((v) => v.hasApp).length;
+  const totalVendors = vendorStats?.total || vendors.length;
+
+  if (isLoading) {
+    return (
+      <AppLayout>
+        <Header title="Vendors" subtitle="Loading..." />
+        <div className="flex items-center justify-center h-64">
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        </div>
+      </AppLayout>
+    );
+  }
 
   return (
     <AppLayout>
       <Header 
         title="Vendors" 
-        subtitle={`${mockVendors.length} registered vendors`}
+        subtitle={`${totalVendors} registered vendors`}
         showAddButton
         addButtonLabel="Add Vendor"
       />
@@ -114,6 +129,12 @@ export default function VendorsPage() {
             </div>
           ))}
         </div>
+
+        {filteredVendors.length === 0 && (
+          <div className="text-center py-12 text-muted-foreground">
+            No vendors found matching your filters.
+          </div>
+        )}
       </div>
 
       {/* Vendor Details Dialog */}

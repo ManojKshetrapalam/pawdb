@@ -6,7 +6,7 @@ import { LeadFormDialog } from '@/components/leads/LeadFormDialog';
 import { FollowUpReminderDialog } from '@/components/leads/FollowUpReminderDialog';
 import { SubscriptionSelectionDialog } from '@/components/leads/SubscriptionSelectionDialog';
 import { BulkUploadDialog } from '@/components/leads/BulkUploadDialog';
-import { mockLeads } from '@/data/mockData';
+import { useLeads } from '@/hooks/useLeads';
 import { VERTICALS, Lead } from '@/types';
 import { useFollowUpReminders } from '@/hooks/useFollowUpReminders';
 import { usePricing } from '@/contexts/PricingContext';
@@ -18,13 +18,13 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { Filter, Upload } from 'lucide-react';
+import { Filter, Upload, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 
 export default function LeadsPage() {
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [verticalFilter, setVerticalFilter] = useState<string>('all');
-  const [leads, setLeads] = useState<Lead[]>(mockLeads);
+  const { data: leads = [], isLoading } = useLeads();
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingLead, setEditingLead] = useState<Lead | null>(null);
   const [subscriptionLead, setSubscriptionLead] = useState<Lead | null>(null);
@@ -62,56 +62,18 @@ export default function LeadsPage() {
   });
 
   const handleSaveLead = (leadData: Partial<Lead>) => {
-    if (editingLead) {
-      // Update existing lead
-      setLeads(leads.map(l => 
-        l.id === editingLead.id 
-          ? { ...l, ...leadData }
-          : l
-      ));
-    } else {
-      // Create new lead
-      const newLead: Lead = {
-        id: String(Date.now()),
-        name: leadData.name || '',
-        email: leadData.email || '',
-        phone: leadData.phone || '',
-        vertical: leadData.vertical!,
-        status: leadData.status || 'new',
-        source: leadData.source || 'meta',
-        assignedTo: leadData.assignedTo || null,
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-        notes: leadData.notes || [],
-        followUpDate: leadData.followUpDate,
-      };
-      setLeads([newLead, ...leads]);
-    }
+    // TODO: Implement save to Supabase
+    console.log('Save lead:', leadData);
   };
 
   const handleBulkUpload = (uploadedLeads: Partial<Lead>[]) => {
-    const newLeads: Lead[] = uploadedLeads.map((leadData, idx) => ({
-      id: String(Date.now() + idx),
-      name: leadData.name || '',
-      email: leadData.email || '',
-      phone: leadData.phone || '',
-      vertical: leadData.vertical!,
-      status: leadData.status || 'new',
-      source: leadData.source || 'meta',
-      assignedTo: null,
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-      notes: [],
-    }));
-    setLeads([...newLeads, ...leads]);
+    // TODO: Implement bulk upload to Supabase
+    console.log('Bulk upload:', uploadedLeads);
   };
 
   const handleConvert = (leadId: string) => {
-    setLeads(leads.map(l => 
-      l.id === leadId 
-        ? { ...l, status: 'converted' as const, updatedAt: new Date().toISOString() }
-        : l
-    ));
+    // TODO: Implement convert in Supabase
+    console.log('Convert lead:', leadId);
   };
 
   const handleConvertWithSubscription = (lead: Lead) => {
@@ -125,13 +87,6 @@ export default function LeadsPage() {
     price: number
   ) => {
     if (!subscriptionLead) return;
-
-    // Mark lead as converted
-    setLeads(leads.map(l => 
-      l.id === subscriptionLead.id 
-        ? { ...l, status: 'converted' as const, updatedAt: new Date().toISOString() }
-        : l
-    ));
 
     // Add to converted subscriptions
     addConvertedSubscription({
@@ -147,6 +102,17 @@ export default function LeadsPage() {
     toast.success('Lead converted with subscription!');
     setSubscriptionLead(null);
   };
+
+  if (isLoading) {
+    return (
+      <AppLayout>
+        <Header title="All Leads" subtitle="Loading..." />
+        <div className="flex items-center justify-center h-64">
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        </div>
+      </AppLayout>
+    );
+  }
 
   return (
     <AppLayout>

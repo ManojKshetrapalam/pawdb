@@ -2,21 +2,22 @@ import { useState } from 'react';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { Header } from '@/components/layout/Header';
 import { TeamEditDialog } from '@/components/team/TeamEditDialog';
-import { mockUsers } from '@/data/mockData';
+import { useTeamUsers, useTeamStats } from '@/hooks/useTeam';
 import { User } from '@/types';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { Button } from '@/components/ui/button';
-import { Shield, User as UserIcon, Pencil, Users, TrendingUp, CheckCircle, Download, DollarSign } from 'lucide-react';
+import { Shield, User as UserIcon, Pencil, Users, TrendingUp, CheckCircle, Download, DollarSign, Loader2 } from 'lucide-react';
 import { useCurrentUser } from '@/contexts/CurrentUserContext';
 import { StatCard } from '@/components/dashboard/StatCard';
 import { format } from 'date-fns';
 import { toast } from 'sonner';
 
 export default function TeamPage() {
-  const [members, setMembers] = useState<User[]>(mockUsers);
+  const { data: members = [], isLoading } = useTeamUsers();
+  const { data: teamStats } = useTeamStats();
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingMember, setEditingMember] = useState<User | null>(null);
   const { currentUser, hasPermission } = useCurrentUser();
@@ -36,11 +37,8 @@ export default function TeamPage() {
   };
 
   const handleSaveMember = (member: User) => {
-    if (editingMember) {
-      setMembers(members.map(m => m.id === member.id ? member : m));
-    } else {
-      setMembers([...members, member]);
-    }
+    // TODO: Implement save to Supabase
+    console.log('Save member:', member);
   };
 
   const handleExportTeam = () => {
@@ -75,8 +73,8 @@ export default function TeamPage() {
   const REVENUE_PER_CONVERSION = 2500;
 
   // Team stats for vertical heads
-  const teamStats = {
-    totalMembers: members.length,
+  const stats = {
+    totalMembers: teamStats?.totalMembers || members.length,
     totalAssigned: members.reduce((sum, m) => sum + m.assignedLeads, 0),
     totalConverted: members.reduce((sum, m) => sum + m.convertedLeads, 0),
     totalRevenue: members.reduce((sum, m) => sum + (m.convertedLeads * REVENUE_PER_CONVERSION), 0),
@@ -88,11 +86,22 @@ export default function TeamPage() {
       : 0,
   };
 
+  if (isLoading) {
+    return (
+      <AppLayout>
+        <Header title="Team" subtitle="Loading..." />
+        <div className="flex items-center justify-center h-64">
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        </div>
+      </AppLayout>
+    );
+  }
+
   return (
     <AppLayout>
       <Header 
         title="Team" 
-        subtitle="Manage your team members"
+        subtitle={`${stats.totalMembers} team members`}
         showAddButton={canCreateUsers}
         addButtonLabel="Add Member"
         onAddClick={handleAddClick}
@@ -112,24 +121,24 @@ export default function TeamPage() {
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
               <StatCard
                 title="Total Members"
-                value={teamStats.totalMembers}
+                value={stats.totalMembers}
                 icon={Users}
               />
               <StatCard
                 title="Total Assigned"
-                value={teamStats.totalAssigned}
+                value={stats.totalAssigned}
                 icon={UserIcon}
                 iconColor="text-info"
               />
               <StatCard
                 title="Total Converted"
-                value={teamStats.totalConverted}
+                value={stats.totalConverted}
                 icon={CheckCircle}
                 iconColor="text-success"
               />
               <StatCard
                 title="Avg Conversion Rate"
-                value={`${teamStats.avgConversionRate}%`}
+                value={`${stats.avgConversionRate}%`}
                 icon={TrendingUp}
                 iconColor="text-primary"
               />
