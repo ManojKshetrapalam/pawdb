@@ -9,13 +9,14 @@ import { FollowUpReminderDialog } from '@/components/leads/FollowUpReminderDialo
 import { VERTICALS, Lead } from '@/types';
 import { useRecentLeads, useLeadStats } from '@/hooks/useLeads';
 import { useFollowUpReminders } from '@/hooks/useFollowUpReminders';
-import { useRevenueStats } from '@/hooks/useRevenue';
-import { Users, TrendingUp, CheckCircle, Clock, Store, Loader2, DollarSign, ShoppingCart } from 'lucide-react';
+import { useRevenueStats, useSubscriptionStats } from '@/hooks/useRevenue';
+import { Users, TrendingUp, CheckCircle, Clock, Store, Loader2, DollarSign, ShoppingCart, Crown } from 'lucide-react';
 
 export default function Dashboard() {
   const { data: recentLeads = [], isLoading } = useRecentLeads(10);
   const { data: leadStats } = useLeadStats();
   const { data: revenueStats } = useRevenueStats();
+  const { data: subscriptionStats } = useSubscriptionStats();
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingLead, setEditingLead] = useState<Lead | null>(null);
 
@@ -78,7 +79,7 @@ export default function Dashboard() {
       
       <div className="p-6 space-y-8">
         {/* Stats Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
           <StatCard
             title="Total Leads"
             value={stats.totalLeads.toLocaleString()}
@@ -89,18 +90,26 @@ export default function Dashboard() {
           <StatCard
             title="Total Revenue"
             value={`₹${(revenueStats?.totalRevenue || 0).toLocaleString()}`}
-            change={`${revenueStats?.totalLeadsSold || 0} leads sold`}
+            change={`Leads + Subscriptions`}
             changeType="positive"
             icon={DollarSign}
             iconColor="text-success"
           />
           <StatCard
-            title="Leads Sold"
-            value={(revenueStats?.totalLeadsSold || 0).toLocaleString()}
-            change={`${revenueStats?.uniqueBuyers || 0} unique buyers`}
-            changeType="neutral"
+            title="Lead Sales"
+            value={`₹${((revenueStats?.totalRevenue || 0) - (revenueStats?.subscriptionRevenue || 0)).toLocaleString()}`}
+            change={`${revenueStats?.totalLeadsSold || 0} leads sold`}
+            changeType="positive"
             icon={ShoppingCart}
             iconColor="text-info"
+          />
+          <StatCard
+            title="Subscription Revenue"
+            value={`₹${(revenueStats?.subscriptionRevenue || 0).toLocaleString()}`}
+            change={`${revenueStats?.totalSubscriptions || 0} subscriptions`}
+            changeType="positive"
+            icon={Crown}
+            iconColor="text-warning"
           />
           <StatCard
             title="Avg Lead Price"
@@ -108,7 +117,7 @@ export default function Dashboard() {
             change="Per lead"
             changeType="neutral"
             icon={TrendingUp}
-            iconColor="text-warning"
+            iconColor="text-primary"
           />
         </div>
 

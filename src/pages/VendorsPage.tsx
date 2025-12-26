@@ -13,7 +13,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { Filter, Crown, Smartphone, Loader2, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Filter, Crown, Smartphone, Loader2, ChevronLeft, ChevronRight, DollarSign } from 'lucide-react';
 
 export default function VendorsPage() {
   const [subscriptionFilter, setSubscriptionFilter] = useState<string>('all');
@@ -79,7 +79,7 @@ export default function VendorsPage() {
       
       <div className="p-6 space-y-6">
         {/* Stats */}
-        <div className="flex gap-4">
+        <div className="flex flex-wrap gap-4">
           <div className="flex items-center gap-2 rounded-lg bg-warning/10 px-4 py-2">
             <Crown className="h-4 w-4 text-warning" />
             <span className="text-sm font-medium text-warning">{subscribedCount.toLocaleString()} Premium</span>
@@ -87,6 +87,10 @@ export default function VendorsPage() {
           <div className="flex items-center gap-2 rounded-lg bg-muted px-4 py-2">
             <Smartphone className="h-4 w-4 text-muted-foreground" />
             <span className="text-sm font-medium text-muted-foreground">{withAppCount.toLocaleString()} with App</span>
+          </div>
+          <div className="flex items-center gap-2 rounded-lg bg-success/10 px-4 py-2">
+            <DollarSign className="h-4 w-4 text-success" />
+            <span className="text-sm font-medium text-success">₹{(vendorStats?.subscriptionRevenue || 0).toLocaleString()} Subscription Revenue</span>
           </div>
         </div>
 
