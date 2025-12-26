@@ -183,13 +183,24 @@ Deno.serve(async (req) => {
       }
 
       if (records.length > 0) {
-        // Team Users is often re-imported; ignore duplicates by legacy_id so existing rows don't fail the whole batch.
-        const shouldIgnoreDuplicates = table === 'team_users';
+        // Tables with legacy_id should use upsert to handle re-imports gracefully
+        const tablesWithLegacyId = [
+          'team_users', 
+          'planners', 
+          'general_leads', 
+          'custom_buyleads', 
+          'chat_leadform', 
+          'general_leads_buy', 
+          'client_subscriptions', 
+          'planner_subscriptions', 
+          'app_links'
+        ];
+        const shouldUpsert = tablesWithLegacyId.includes(table);
 
-        const { data, error } = shouldIgnoreDuplicates
+        const { data, error } = shouldUpsert
           ? await supabase
               .from(table)
-              .upsert(records, { onConflict: 'legacy_id', ignoreDuplicates: true })
+              .upsert(records, { onConflict: 'legacy_id' })
               .select('legacy_id')
           : await supabase.from(table).insert(records);
 
@@ -200,8 +211,7 @@ Deno.serve(async (req) => {
             results.errors.push(`Batch ${Math.floor(i / batchSize)}: ${error.message}`);
           }
         } else {
-          // When ignoring duplicates, the returned rows (if any) represent the records actually inserted.
-          results.success += shouldIgnoreDuplicates ? (data?.length ?? 0) : records.length;
+          results.success += records.length;
         }
       }
 
