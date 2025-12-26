@@ -26,6 +26,7 @@ const getDisplayName = (row: PlannerRow): string => {
 const mapPlannerToVendor = (row: PlannerRow): Vendor => {
   return {
     id: row.id,
+    legacyId: row.legacy_id ?? undefined,
     businessName: getDisplayName(row),
     contactName: isValidName(row.name) ? row.name : 'Unknown',
     email: row.email || '',
