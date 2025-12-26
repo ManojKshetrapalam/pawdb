@@ -7,17 +7,18 @@ import { LeadsTable } from '@/components/leads/LeadsTable';
 import { LeadFormDialog } from '@/components/leads/LeadFormDialog';
 import { FollowUpReminderDialog } from '@/components/leads/FollowUpReminderDialog';
 import { VERTICALS, Lead } from '@/types';
-import { mockLeads } from '@/data/mockData';
+import { useLeads, useLeadStats } from '@/hooks/useLeads';
 import { useFollowUpReminders } from '@/hooks/useFollowUpReminders';
-import { Users, TrendingUp, CheckCircle, Clock, Store } from 'lucide-react';
+import { Users, TrendingUp, CheckCircle, Clock, Store, Loader2 } from 'lucide-react';
 
 export default function Dashboard() {
-  const [leads, setLeads] = useState<Lead[]>(mockLeads);
+  const { data: leads = [], isLoading } = useLeads();
+  const { data: leadStats } = useLeadStats();
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingLead, setEditingLead] = useState<Lead | null>(null);
 
   const stats = {
-    totalLeads: leads.length,
+    totalLeads: leadStats?.total || leads.length,
     newLeads: leads.filter((l) => l.status === 'new').length,
     converted: leads.filter((l) => l.status === 'converted').length,
     pending: leads.filter((l) => l.status === 'contacted' || l.status === 'follow-up').length,
@@ -52,30 +53,20 @@ export default function Dashboard() {
   });
 
   const handleSaveLead = (leadData: Partial<Lead>) => {
-    if (editingLead) {
-      setLeads(leads.map(l => 
-        l.id === editingLead.id 
-          ? { ...l, ...leadData }
-          : l
-      ));
-    } else {
-      const newLead: Lead = {
-        id: String(Date.now()),
-        name: leadData.name || '',
-        email: leadData.email || '',
-        phone: leadData.phone || '',
-        vertical: leadData.vertical!,
-        status: leadData.status || 'new',
-        source: leadData.source || 'meta',
-        assignedTo: leadData.assignedTo || null,
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-        notes: leadData.notes || [],
-        followUpDate: leadData.followUpDate,
-      };
-      setLeads([newLead, ...leads]);
-    }
+    // TODO: Implement save to Supabase
+    console.log('Save lead:', leadData);
   };
+
+  if (isLoading) {
+    return (
+      <AppLayout>
+        <Header title="Dashboard" subtitle="Overview of your lead operations" />
+        <div className="flex items-center justify-center h-64">
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        </div>
+      </AppLayout>
+    );
+  }
 
   return (
     <AppLayout>
@@ -95,25 +86,25 @@ export default function Dashboard() {
             icon={Users}
           />
           <StatCard
-            title="New Leads"
-            value={stats.newLeads}
-            change="Requires attention"
+            title="App B2B"
+            value={leadStats?.appB2B || 0}
+            change="Business leads"
             changeType="neutral"
             icon={TrendingUp}
             iconColor="text-info"
           />
           <StatCard
-            title="Converted"
-            value={stats.converted}
-            change="+8% conversion rate"
-            changeType="positive"
+            title="App B2C"
+            value={leadStats?.appB2C || 0}
+            change="Consumer leads"
+            changeType="neutral"
             icon={CheckCircle}
             iconColor="text-success"
           />
           <StatCard
-            title="In Progress"
-            value={stats.pending}
-            change="Being processed"
+            title="Buy Leads"
+            value={leadStats?.buyLeads || 0}
+            change="Purchase leads"
             changeType="neutral"
             icon={Clock}
             iconColor="text-warning"
