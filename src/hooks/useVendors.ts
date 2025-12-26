@@ -31,20 +31,56 @@ const mapPlannerToVendor = (row: PlannerRow): Vendor => {
   };
 };
 
-export const useVendors = () => {
+interface UseVendorsOptions {
+  page?: number;
+  pageSize?: number;
+  subscriptionFilter?: string;
+  appFilter?: string;
+}
+
+export const useVendors = (options: UseVendorsOptions = {}) => {
+  const { page = 1, pageSize = 50, subscriptionFilter, appFilter } = options;
+  
   return useQuery({
-    queryKey: ['planners'],
+    queryKey: ['planners', page, pageSize, subscriptionFilter, appFilter],
     queryFn: async () => {
-      const { data, error } = await supabase
+      const from = (page - 1) * pageSize;
+      const to = from + pageSize - 1;
+      
+      let query = supabase
         .from('planners')
-        .select('*')
-        .order('name', { ascending: true });
+        .select('*', { count: 'exact' })
+        .order('name', { ascending: true })
+        .range(from, to);
+      
+      // Apply subscription filter at DB level
+      if (subscriptionFilter === 'subscribed') {
+        query = query.eq('chk_subscription', true);
+      } else if (subscriptionFilter === 'not-subscribed') {
+        query = query.eq('chk_subscription', false);
+      }
+      
+      const { data, error, count } = await query;
       
       if (error) throw error;
       
-      // Filter out invalid/placeholder records
-      const validRecords = (data || []).filter(row => isValidName(row.name));
-      return validRecords.map(mapPlannerToVendor);
+      // Filter out invalid/placeholder records (client-side)
+      let validRecords = (data || []).filter(row => isValidName(row.name));
+      
+      // Apply app filter (client-side since it's computed)
+      if (appFilter === 'has-app') {
+        validRecords = validRecords.filter(row => !!row.android_token || !!row.iphone_token);
+      } else if (appFilter === 'no-app') {
+        validRecords = validRecords.filter(row => !row.android_token && !row.iphone_token);
+      }
+      
+      return {
+        vendors: validRecords.map(mapPlannerToVendor),
+        total: count || 0,
+        page,
+        pageSize,
+        totalPages: Math.ceil((count || 0) / pageSize),
+      };
     },
   });
 };
@@ -56,14 +92,16 @@ export const useVendorStats = () => {
       // Get all planners with valid names
       const { data } = await supabase
         .from('planners')
-        .select('name, chk_subscription');
+        .select('name, chk_subscription, android_token, iphone_token');
       
       const validRecords = (data || []).filter(row => isValidName(row.name));
       const subscribed = validRecords.filter(row => row.chk_subscription).length;
+      const withApp = validRecords.filter(row => !!row.android_token || !!row.iphone_token).length;
       
       return {
         total: validRecords.length,
         subscribed,
+        withApp,
       };
     },
   });
