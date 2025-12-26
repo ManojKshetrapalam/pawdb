@@ -5,6 +5,16 @@ import { Tables } from '@/integrations/supabase/types';
 
 type PlannerRow = Tables<'planners'>;
 
+// Check if a name is valid (not empty, not HTML tags, not placeholder)
+const isValidName = (name: string | null): boolean => {
+  if (!name || name.trim() === '') return false;
+  // Filter out HTML tags and placeholder text
+  if (name.includes('<br') || name.includes('<BR')) return false;
+  if (name.startsWith('(Ex')) return false;
+  if (name.trim().length < 2) return false;
+  return true;
+};
+
 // Map database row to Vendor type
 const mapPlannerToVendor = (row: PlannerRow): Vendor => {
   return {
@@ -31,7 +41,10 @@ export const useVendors = () => {
         .order('name', { ascending: true });
       
       if (error) throw error;
-      return (data || []).map(mapPlannerToVendor);
+      
+      // Filter out invalid/placeholder records
+      const validRecords = (data || []).filter(row => isValidName(row.name));
+      return validRecords.map(mapPlannerToVendor);
     },
   });
 };
@@ -40,18 +53,17 @@ export const useVendorStats = () => {
   return useQuery({
     queryKey: ['vendor_stats'],
     queryFn: async () => {
-      const { count: total } = await supabase
+      // Get all planners with valid names
+      const { data } = await supabase
         .from('planners')
-        .select('*', { count: 'exact', head: true });
+        .select('name, chk_subscription');
       
-      const { count: subscribed } = await supabase
-        .from('planners')
-        .select('*', { count: 'exact', head: true })
-        .eq('chk_subscription', true);
+      const validRecords = (data || []).filter(row => isValidName(row.name));
+      const subscribed = validRecords.filter(row => row.chk_subscription).length;
       
       return {
-        total: total || 0,
-        subscribed: subscribed || 0,
+        total: validRecords.length,
+        subscribed,
       };
     },
   });
