@@ -50,6 +50,7 @@ export const useLeads = (limit?: number) => {
       let query = supabase
         .from('chat_leadform')
         .select('*')
+        .not('name', 'is', null) // Only get records with names
         .order('created_at', { ascending: false });
       
       if (limit) {
@@ -59,7 +60,10 @@ export const useLeads = (limit?: number) => {
       const { data, error } = await query;
       
       if (error) throw error;
-      return (data || []).map(mapChatLeadToLead);
+      
+      // Filter out records with empty names
+      const validRecords = (data || []).filter(row => row.name && row.name.trim() !== '');
+      return validRecords.map(mapChatLeadToLead);
     },
   });
 };
