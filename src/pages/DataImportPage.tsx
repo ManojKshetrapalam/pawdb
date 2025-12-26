@@ -1,10 +1,10 @@
-import React, { useRef, useState } from 'react';
+import React, { useRef, useState, useEffect } from 'react';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { Header } from '@/components/layout/Header';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Upload, CheckCircle, XCircle, Loader2, FileText, AlertCircle } from 'lucide-react';
+import { Upload, CheckCircle, XCircle, Loader2, FileText, AlertCircle, RefreshCw } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { Progress } from '@/components/ui/progress';
@@ -31,13 +31,14 @@ const TABLES: TableConfig[] = [
 
 interface ImportStatus {
   tableName: string;
-  status: 'pending' | 'uploading' | 'success' | 'error';
+  status: 'pending' | 'uploading' | 'success' | 'error' | 'imported';
   success?: number;
   failed?: number;
   errors?: string[];
   progress?: number;
   totalChunks?: number;
   currentChunk?: number;
+  existingCount?: number;
 }
 
 // Split CSV into chunks while preserving the header
@@ -59,7 +60,39 @@ function splitCSVIntoChunks(csvContent: string, chunkSize: number = 5000): strin
 
 const DataImportPage: React.FC = () => {
   const [importStatuses, setImportStatuses] = useState<Record<string, ImportStatus>>({});
+  const [isLoadingCounts, setIsLoadingCounts] = useState(true);
   const fileInputRefs = useRef<Record<string, HTMLInputElement | null>>({});
+
+  // Check existing row counts on mount
+  useEffect(() => {
+    checkExistingData();
+  }, []);
+
+  const checkExistingData = async () => {
+    setIsLoadingCounts(true);
+    const statuses: Record<string, ImportStatus> = {};
+    
+    for (const table of TABLES) {
+      try {
+        const { count, error } = await supabase
+          .from(table.tableName as any)
+          .select('*', { count: 'exact', head: true });
+        
+        if (!error && count && count > 0) {
+          statuses[table.tableName] = {
+            tableName: table.tableName,
+            status: 'imported',
+            existingCount: count
+          };
+        }
+      } catch (e) {
+        console.error(`Error checking ${table.tableName}:`, e);
+      }
+    }
+    
+    setImportStatuses(prev => ({ ...prev, ...statuses }));
+    setIsLoadingCounts(false);
+  };
 
   const handleFileSelect = async (tableName: string, file: File) => {
     setImportStatuses(prev => ({
@@ -149,12 +182,13 @@ const DataImportPage: React.FC = () => {
   };
 
   const getStatusIcon = (status?: ImportStatus) => {
-    if (!status) return <FileText className="h-5 w-5 text-muted-foreground" />;
+    if (!status || isLoadingCounts) return <FileText className="h-5 w-5 text-muted-foreground" />;
     
     switch (status.status) {
       case 'uploading':
         return <Loader2 className="h-5 w-5 text-primary animate-spin" />;
       case 'success':
+      case 'imported':
         return <CheckCircle className="h-5 w-5 text-green-500" />;
       case 'error':
         return <XCircle className="h-5 w-5 text-destructive" />;
@@ -164,6 +198,7 @@ const DataImportPage: React.FC = () => {
   };
 
   const getStatusBadge = (status?: ImportStatus) => {
+    if (isLoadingCounts) return <Badge variant="outline">Checking...</Badge>;
     if (!status) return <Badge variant="outline">Pending</Badge>;
     
     switch (status.status) {
@@ -175,6 +210,8 @@ const DataImportPage: React.FC = () => {
         );
       case 'success':
         return <Badge className="bg-green-500">{(status.success || 0).toLocaleString()} imported</Badge>;
+      case 'imported':
+        return <Badge className="bg-green-500">{(status.existingCount || 0).toLocaleString()} rows</Badge>;
       case 'error':
         return (
           <Badge variant="destructive">
@@ -193,13 +230,30 @@ const DataImportPage: React.FC = () => {
       <div className="p-6">
         <Card className="mb-6">
           <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Upload className="h-5 w-5" />
-              CSV Data Import
-            </CardTitle>
-            <CardDescription>
-              Upload your CSV files to import data into the database. Large files are automatically chunked for reliable import.
-            </CardDescription>
+            <div className="flex items-center justify-between">
+              <div>
+                <CardTitle className="flex items-center gap-2">
+                  <Upload className="h-5 w-5" />
+                  CSV Data Import
+                </CardTitle>
+                <CardDescription>
+                  Upload your CSV files to import data into the database. Large files are automatically chunked for reliable import.
+                </CardDescription>
+              </div>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={checkExistingData}
+                disabled={isLoadingCounts}
+              >
+                {isLoadingCounts ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <RefreshCw className="h-4 w-4" />
+                )}
+                <span className="ml-2">Refresh Status</span>
+              </Button>
+            </div>
           </CardHeader>
           <CardContent>
             <div className="flex items-center gap-2 p-4 bg-amber-500/10 border border-amber-500/20 rounded-lg mb-4">
