@@ -154,24 +154,29 @@ export function BulkUploadDialog({ open, onOpenChange, onUpload }: BulkUploadDia
   };
 
   const downloadTemplate = () => {
-    const verticalsList = VERTICALS.map(v => v.id).join(', ');
-    const employeesList = mockUsers.map(u => `${u.name} (${u.role})`).join(', ');
+    const verticals = VERTICALS.map(v => v.id);
+    const sources = ['meta', 'google', 'organic', 'referral'];
+    const employees = mockUsers.map(u => `${u.name} (${u.role})`);
     
-    const template = `Name,Email,Phone,Vertical,Source
-John Doe,john@example.com,9876543210,app-b2b,meta
-Jane Smith,jane@example.com,9876543211,buy-leads,google
-
---- REFERENCE (Delete this section before uploading) ---
-
-VERTICALS (use exactly as shown):
-${verticalsList}
-
-SOURCES (use exactly as shown):
-meta, google, organic, referral
-
-EMPLOYEES:
-${employeesList}`;
+    // Find max rows needed for reference columns
+    const maxRows = Math.max(verticals.length, sources.length, employees.length);
     
+    // Build CSV rows
+    const rows = [
+      'Name,Email,Phone,Vertical,Source,,,,,Verticals (Reference),Sources (Reference),Employees (Reference)',
+      'John Doe,john@example.com,9876543210,app-b2b,meta,,,,,app-b2b,meta,Priya Sharma (admin)',
+      'Jane Smith,jane@example.com,9876543211,buy-leads,google,,,,,app-b2c,google,Rahul Patel (vertical-head)',
+    ];
+    
+    // Add remaining reference rows
+    for (let i = 2; i < maxRows; i++) {
+      const vertical = verticals[i] || '';
+      const source = sources[i] || '';
+      const employee = employees[i] || '';
+      rows.push(`,,,,,,,,,${vertical},${source},${employee}`);
+    }
+    
+    const template = rows.join('\n');
     const blob = new Blob([template], { type: 'text/csv' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
