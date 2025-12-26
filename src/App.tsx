@@ -16,6 +16,7 @@ import MarketplacePage from "./pages/MarketplacePage";
 import AccountsPage from "./pages/AccountsPage";
 import SettingsPage from "./pages/SettingsPage";
 import NotificationsPage from "./pages/NotificationsPage";
+import DataImportPage from "./pages/DataImportPage";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -40,6 +41,7 @@ const App = () => (
                 <Route path="/accounts" element={<AccountsPage />} />
                 <Route path="/settings" element={<SettingsPage />} />
                 <Route path="/notifications" element={<NotificationsPage />} />
+                <Route path="/data-import" element={<DataImportPage />} />
                 <Route path="*" element={<NotFound />} />
               </Routes>
             </BrowserRouter>
