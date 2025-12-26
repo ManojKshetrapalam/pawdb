@@ -63,6 +63,8 @@ export const useVendors = (options: UseVendorsOptions = {}) => {
       let query = supabase
         .from('planners')
         .select('*', { count: 'exact' })
+        // Sort by subscription status first (subscribed = true first), then by business_name
+        .order('chk_subscription', { ascending: false, nullsFirst: false })
         .order('business_name', { ascending: true, nullsFirst: false })
         .range(from, to);
       
@@ -105,18 +107,30 @@ export const useVendorStats = () => {
       // Get all planners with valid names
       const { data } = await supabase
         .from('planners')
-        .select('name, business_name, chk_subscription, android_token, iphone_token');
+        .select('name, business_name, chk_subscription, android_token, iphone_token, legacy_id');
       
       const validRecords = (data || []).filter(row => 
         isValidName(row.business_name) || isValidName(row.name)
       );
       const subscribed = validRecords.filter(row => row.chk_subscription).length;
       const withApp = validRecords.filter(row => !!row.android_token || !!row.iphone_token).length;
+
+      // Get subscription revenue
+      const { data: subscriptions } = await supabase
+        .from('planner_subscriptions')
+        .select('subscription_amount');
+
+      let subscriptionRevenue = 0;
+      (subscriptions || []).forEach(sub => {
+        subscriptionRevenue += Number(sub.subscription_amount) || 0;
+      });
       
       return {
         total: validRecords.length,
         subscribed,
         withApp,
+        subscriptionRevenue,
+        totalSubscriptions: subscriptions?.length || 0,
       };
     },
   });

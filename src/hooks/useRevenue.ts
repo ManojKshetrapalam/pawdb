@@ -6,11 +6,30 @@ interface RevenueStats {
   totalLeadsSold: number;
   uniqueBuyers: number;
   avgLeadPrice: number;
+  subscriptionRevenue: number;
+  totalSubscriptions: number;
   topBuyers: Array<{
     legacy_id: number;
     total_spent: number;
     leads_purchased: number;
   }>;
+}
+
+interface SubscriptionStats {
+  totalRevenue: number;
+  totalSubscriptions: number;
+  activeSubscribers: number;
+  byType: Record<string, { count: number; revenue: number }>;
+}
+
+interface PlannerSubscription {
+  id: string;
+  subscription_amount: number;
+  subscription_type: string | null;
+  subscription_tenure: string | null;
+  subscription_date: string | null;
+  actual_subscription_date: string | null;
+  actual_subscription_end_date: string | null;
 }
 
 interface PlannerSpending {
@@ -46,6 +65,19 @@ export const useRevenueStats = () => {
       
       if (leadsError) throw leadsError;
 
+      // Get subscription revenue
+      const { data: subscriptions, error: subError } = await supabase
+        .from('planner_subscriptions')
+        .select('subscription_amount');
+      
+      if (subError) throw subError;
+
+      // Calculate subscription revenue
+      let subscriptionRevenue = 0;
+      (subscriptions || []).forEach(sub => {
+        subscriptionRevenue += Number(sub.subscription_amount) || 0;
+      });
+
       // Create a map of lead prices
       const leadPriceMap = new Map<number, number>();
       (leads || []).forEach(lead => {
@@ -55,12 +87,12 @@ export const useRevenueStats = () => {
       });
 
       // Calculate stats
-      let totalRevenue = 0;
+      let totalLeadRevenue = 0;
       const buyerSpending = new Map<number, { total: number; count: number }>();
 
       (purchases || []).forEach(purchase => {
         const price = leadPriceMap.get(purchase.general_leads_legacy_id || 0) || 0;
-        totalRevenue += price;
+        totalLeadRevenue += price;
 
         if (purchase.user_legacy_id) {
           const current = buyerSpending.get(purchase.user_legacy_id) || { total: 0, count: 0 };
@@ -82,13 +114,91 @@ export const useRevenueStats = () => {
         .slice(0, 10);
 
       return {
-        totalRevenue,
+        totalRevenue: totalLeadRevenue + subscriptionRevenue,
         totalLeadsSold: purchases?.length || 0,
         uniqueBuyers: buyerSpending.size,
-        avgLeadPrice: purchases?.length ? totalRevenue / purchases.length : 0,
+        avgLeadPrice: purchases?.length ? totalLeadRevenue / purchases.length : 0,
+        subscriptionRevenue,
+        totalSubscriptions: subscriptions?.length || 0,
         topBuyers,
       };
     },
+  });
+};
+
+export const useSubscriptionStats = () => {
+  return useQuery({
+    queryKey: ['subscription_stats'],
+    queryFn: async (): Promise<SubscriptionStats> => {
+      const { data: subscriptions, error } = await supabase
+        .from('planner_subscriptions')
+        .select('subscription_amount, subscription_type, actual_subscription_end_date');
+      
+      if (error) throw error;
+
+      let totalRevenue = 0;
+      let activeSubscribers = 0;
+      const byType: Record<string, { count: number; revenue: number }> = {};
+      const today = new Date().toISOString().split('T')[0];
+
+      (subscriptions || []).forEach(sub => {
+        const amount = Number(sub.subscription_amount) || 0;
+        totalRevenue += amount;
+
+        // Check if subscription is active
+        if (sub.actual_subscription_end_date && sub.actual_subscription_end_date >= today) {
+          activeSubscribers++;
+        }
+
+        const type = sub.subscription_type || 'Unknown';
+        if (!byType[type]) {
+          byType[type] = { count: 0, revenue: 0 };
+        }
+        byType[type].count++;
+        byType[type].revenue += amount;
+      });
+
+      return {
+        totalRevenue,
+        totalSubscriptions: subscriptions?.length || 0,
+        activeSubscribers,
+        byType,
+      };
+    },
+  });
+};
+
+export const usePlannerSubscriptions = (plannerLegacyId: number | null) => {
+  return useQuery({
+    queryKey: ['planner_subscriptions', plannerLegacyId],
+    queryFn: async (): Promise<{ subscriptions: PlannerSubscription[]; totalSpent: number } | null> => {
+      if (!plannerLegacyId) return null;
+
+      const { data, error } = await supabase
+        .from('planner_subscriptions')
+        .select('id, subscription_amount, subscription_type, subscription_tenure, subscription_date, actual_subscription_date, actual_subscription_end_date')
+        .eq('user_legacy_id', plannerLegacyId)
+        .order('subscription_date', { ascending: false });
+      
+      if (error) throw error;
+
+      let totalSpent = 0;
+      const subscriptions: PlannerSubscription[] = (data || []).map(sub => {
+        totalSpent += Number(sub.subscription_amount) || 0;
+        return {
+          id: sub.id,
+          subscription_amount: Number(sub.subscription_amount) || 0,
+          subscription_type: sub.subscription_type,
+          subscription_tenure: sub.subscription_tenure,
+          subscription_date: sub.subscription_date,
+          actual_subscription_date: sub.actual_subscription_date,
+          actual_subscription_end_date: sub.actual_subscription_end_date,
+        };
+      });
+
+      return { subscriptions, totalSpent };
+    },
+    enabled: !!plannerLegacyId,
   });
 };
 

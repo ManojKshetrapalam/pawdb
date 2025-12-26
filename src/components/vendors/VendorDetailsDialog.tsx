@@ -11,6 +11,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { 
   Phone, 
   Mail, 
@@ -25,11 +26,14 @@ import {
   ShoppingCart,
   TrendingUp,
   Activity,
-  Loader2
+  Loader2,
+  CreditCard,
+  CheckCircle,
+  XCircle
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { toast } from 'sonner';
-import { usePlannerSpending } from '@/hooks/useRevenue';
+import { usePlannerSpending, usePlannerSubscriptions } from '@/hooks/useRevenue';
 
 interface VendorDetailsDialogProps {
   vendor: Vendor | null;
@@ -43,7 +47,21 @@ export function VendorDetailsDialog({ vendor, open, onOpenChange }: VendorDetail
     vendor?.legacyId || null
   );
 
+  // Get planner subscription data
+  const { data: subscriptionData, isLoading: subscriptionLoading } = usePlannerSubscriptions(
+    vendor?.legacyId || null
+  );
+
   if (!vendor) return null;
+
+  const isActiveSubscriber = subscriptionData?.subscriptions?.some(sub => {
+    if (!sub.actual_subscription_end_date) return false;
+    return new Date(sub.actual_subscription_end_date) >= new Date();
+  });
+
+  const totalSpentOnSubscriptions = subscriptionData?.totalSpent || 0;
+  const totalSpentOnLeads = spendingData?.totalSpent || 0;
+  const grandTotal = totalSpentOnSubscriptions + totalSpentOnLeads;
 
   const handleNotify = () => {
     toast.success(`Notification sent to ${vendor.businessName}`);
@@ -193,48 +211,145 @@ export function VendorDetailsDialog({ vendor, open, onOpenChange }: VendorDetail
             </div>
           </div>
 
-          {/* Spending Stats */}
+          {/* Total Revenue from this Vendor */}
           <Separator />
-          <div>
-            <div className="flex items-center gap-2 mb-4">
-              <Activity className="h-4 w-4 text-primary" />
-              <h4 className="text-sm font-semibold">Lead Purchase History</h4>
-            </div>
-            
-            {spendingLoading ? (
-              <div className="flex items-center justify-center py-4">
-                <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
-              </div>
-            ) : spendingData && spendingData.leadsPurchased > 0 ? (
-              <div className="space-y-3">
-                <div className="grid grid-cols-2 gap-3">
-                  <Card className="bg-warning/5 border-warning/20">
-                    <CardContent className="p-3">
-                      <div className="flex items-center gap-2">
-                        <ShoppingCart className="h-4 w-4 text-warning" />
-                        <div>
-                          <p className="text-lg font-bold text-warning">{spendingData.leadsPurchased}</p>
-                          <p className="text-xs text-muted-foreground">Leads Purchased</p>
-                        </div>
-                      </div>
-                    </CardContent>
-                  </Card>
-
-                  <Card className="bg-success/5 border-success/20">
-                    <CardContent className="p-3">
-                      <div className="flex items-center gap-2">
-                        <TrendingUp className="h-4 w-4 text-success" />
-                        <div>
-                          <p className="text-lg font-bold text-success">₹{spendingData.totalSpent.toLocaleString()}</p>
-                          <p className="text-xs text-muted-foreground">Total Spent</p>
-                        </div>
-                      </div>
-                    </CardContent>
-                  </Card>
+          <div className="bg-gradient-to-r from-primary/10 to-warning/10 rounded-lg p-4">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <TrendingUp className="h-5 w-5 text-primary" />
+                <div>
+                  <p className="text-sm text-muted-foreground">Total Revenue from Vendor</p>
+                  <p className="text-2xl font-bold text-primary">₹{grandTotal.toLocaleString()}</p>
                 </div>
+              </div>
+              {isActiveSubscriber && (
+                <Badge className="bg-success/10 text-success border-success/20 gap-1">
+                  <CheckCircle className="h-3 w-3" />
+                  Active
+                </Badge>
+              )}
+            </div>
+          </div>
 
-                {/* Recent Purchases */}
-                {spendingData.purchases.length > 0 && (
+          {/* Spending History Tabs */}
+          <Tabs defaultValue="subscriptions" className="w-full">
+            <TabsList className="grid w-full grid-cols-2">
+              <TabsTrigger value="subscriptions" className="gap-1">
+                <Crown className="h-3 w-3" />
+                Subscriptions
+              </TabsTrigger>
+              <TabsTrigger value="leads" className="gap-1">
+                <ShoppingCart className="h-3 w-3" />
+                Lead Purchases
+              </TabsTrigger>
+            </TabsList>
+
+            {/* Subscriptions Tab */}
+            <TabsContent value="subscriptions" className="space-y-3">
+              {subscriptionLoading ? (
+                <div className="flex items-center justify-center py-4">
+                  <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+                </div>
+              ) : subscriptionData && subscriptionData.subscriptions.length > 0 ? (
+                <>
+                  <div className="grid grid-cols-2 gap-3">
+                    <Card className="bg-warning/5 border-warning/20">
+                      <CardContent className="p-3">
+                        <div className="flex items-center gap-2">
+                          <CreditCard className="h-4 w-4 text-warning" />
+                          <div>
+                            <p className="text-lg font-bold text-warning">{subscriptionData.subscriptions.length}</p>
+                            <p className="text-xs text-muted-foreground">Total Subscriptions</p>
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
+
+                    <Card className="bg-success/5 border-success/20">
+                      <CardContent className="p-3">
+                        <div className="flex items-center gap-2">
+                          <TrendingUp className="h-4 w-4 text-success" />
+                          <div>
+                            <p className="text-lg font-bold text-success">₹{totalSpentOnSubscriptions.toLocaleString()}</p>
+                            <p className="text-xs text-muted-foreground">Subscription Revenue</p>
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  </div>
+
+                  <ScrollArea className="h-[120px]">
+                    <div className="space-y-2">
+                      {subscriptionData.subscriptions.map((sub) => {
+                        const isActive = sub.actual_subscription_end_date && 
+                          new Date(sub.actual_subscription_end_date) >= new Date();
+                        return (
+                          <div key={sub.id} className="flex items-center justify-between text-sm p-2 rounded bg-muted/30">
+                            <div className="flex items-center gap-2">
+                              {isActive ? (
+                                <CheckCircle className="h-4 w-4 text-success" />
+                              ) : (
+                                <XCircle className="h-4 w-4 text-muted-foreground" />
+                              )}
+                              <div>
+                                <p className="font-medium">{sub.subscription_type || sub.subscription_tenure || 'Subscription'}</p>
+                                <p className="text-xs text-muted-foreground">
+                                  {sub.actual_subscription_date 
+                                    ? format(new Date(sub.actual_subscription_date), 'MMM d, yyyy')
+                                    : 'N/A'
+                                  }
+                                  {sub.actual_subscription_end_date && (
+                                    <> - {format(new Date(sub.actual_subscription_end_date), 'MMM d, yyyy')}</>
+                                  )}
+                                </p>
+                              </div>
+                            </div>
+                            <p className="font-semibold text-success">₹{sub.subscription_amount.toLocaleString()}</p>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </ScrollArea>
+                </>
+              ) : (
+                <p className="text-sm text-muted-foreground text-center py-4">No subscription history</p>
+              )}
+            </TabsContent>
+
+            {/* Lead Purchases Tab */}
+            <TabsContent value="leads" className="space-y-3">
+              {spendingLoading ? (
+                <div className="flex items-center justify-center py-4">
+                  <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+                </div>
+              ) : spendingData && spendingData.leadsPurchased > 0 ? (
+                <>
+                  <div className="grid grid-cols-2 gap-3">
+                    <Card className="bg-warning/5 border-warning/20">
+                      <CardContent className="p-3">
+                        <div className="flex items-center gap-2">
+                          <ShoppingCart className="h-4 w-4 text-warning" />
+                          <div>
+                            <p className="text-lg font-bold text-warning">{spendingData.leadsPurchased}</p>
+                            <p className="text-xs text-muted-foreground">Leads Purchased</p>
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
+
+                    <Card className="bg-success/5 border-success/20">
+                      <CardContent className="p-3">
+                        <div className="flex items-center gap-2">
+                          <TrendingUp className="h-4 w-4 text-success" />
+                          <div>
+                            <p className="text-lg font-bold text-success">₹{totalSpentOnLeads.toLocaleString()}</p>
+                            <p className="text-xs text-muted-foreground">Total Spent</p>
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  </div>
+
                   <ScrollArea className="h-[120px]">
                     <div className="space-y-2">
                       {spendingData.purchases.slice(0, 5).map((purchase) => (
@@ -248,12 +363,12 @@ export function VendorDetailsDialog({ vendor, open, onOpenChange }: VendorDetail
                       ))}
                     </div>
                   </ScrollArea>
-                )}
-              </div>
-            ) : (
-              <p className="text-sm text-muted-foreground text-center py-4">No purchases yet</p>
-            )}
-          </div>
+                </>
+              ) : (
+                <p className="text-sm text-muted-foreground text-center py-4">No purchases yet</p>
+              )}
+            </TabsContent>
+          </Tabs>
 
           {/* Actions */}
           <div className="flex gap-3 pt-2">
