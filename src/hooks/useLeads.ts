@@ -34,6 +34,10 @@ const mapChatLeadToLead = (row: ChatLeadFormRow): Lead => {
     'App B2B': 'app-b2b',
     'App B2C': 'app-b2c',
     'Buy Leads': 'buy-leads',
+    'Wedding Course': 'wedding-course',
+    'SW': 'wedding-sip',
+    'Honeymoon': 'honeymoon',
+    'Marry Now Pay Later': 'wedding-sip',
   };
   
   const vertical = verticalMap[row.enquiry_for || ''] || 'buy-leads';
@@ -85,6 +89,9 @@ export const useLeads = (options: UseLeadsOptions = {}) => {
           'app-b2b': 'App B2B',
           'app-b2c': 'App B2C',
           'buy-leads': 'Buy Leads',
+          'wedding-course': 'Wedding Course',
+          'wedding-sip': 'SW',
+          'honeymoon': 'Honeymoon',
         };
         if (verticalDbMap[vertical]) {
           query = query.eq('enquiry_for', verticalDbMap[vertical]);

@@ -7,17 +7,25 @@ import { LeadFormDialog } from '@/components/leads/LeadFormDialog';
 import { FollowUpReminderDialog } from '@/components/leads/FollowUpReminderDialog';
 import { SubscriptionSelectionDialog } from '@/components/leads/SubscriptionSelectionDialog';
 import { VerticalStats } from '@/components/dashboard/VerticalStats';
-import { mockLeads } from '@/data/mockData';
 import { VERTICALS, Lead, Vertical } from '@/types';
 import { useFollowUpReminders } from '@/hooks/useFollowUpReminders';
 import { useMarketplace } from '@/contexts/MarketplaceContext';
 import { usePricing } from '@/contexts/PricingContext';
+import { useLeads } from '@/hooks/useLeads';
+import { Button } from '@/components/ui/button';
+import { ChevronLeft, ChevronRight } from 'lucide-react';
 
 export default function VerticalPage() {
   const { verticalId } = useParams<{ verticalId: string }>();
   
   const vertical = VERTICALS.find((v) => v.id === verticalId);
-  const [leads, setLeads] = useState<Lead[]>(mockLeads);
+  const [page, setPage] = useState(1);
+  const { data: leadsData, isLoading } = useLeads({ 
+    page, 
+    pageSize: 50, 
+    vertical: verticalId 
+  });
+  
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingLead, setEditingLead] = useState<Lead | null>(null);
   const [subscriptionLead, setSubscriptionLead] = useState<Lead | null>(null);
@@ -25,7 +33,7 @@ export default function VerticalPage() {
   const { postLead } = useMarketplace();
   const { addConvertedSubscription } = usePricing();
 
-  const verticalLeads = leads.filter((l) => l.vertical === verticalId);
+  const verticalLeads = leadsData?.leads || [];
 
   const handleEditLead = (lead: Lead) => {
     setEditingLead(lead);
@@ -55,6 +63,16 @@ export default function VerticalPage() {
     );
   }
 
+  if (isLoading) {
+    return (
+      <AppLayout>
+        <Header title={vertical.name} subtitle={vertical.description} />
+        <div className="flex items-center justify-center h-96">
+          <p className="text-muted-foreground">Loading leads...</p>
+        </div>
+      </AppLayout>
+    );
+  }
 
   const handleAddClick = () => {
     setEditingLead(null);
@@ -62,33 +80,12 @@ export default function VerticalPage() {
   };
 
   const handleSaveLead = (leadData: Partial<Lead>) => {
-    if (editingLead) {
-      setLeads(leads.map(l => 
-        l.id === editingLead.id 
-          ? { ...l, ...leadData }
-          : l
-      ));
-    } else {
-      const newLead: Lead = {
-        id: String(Date.now()),
-        name: leadData.name || '',
-        email: leadData.email || '',
-        phone: leadData.phone || '',
-        vertical: leadData.vertical || (verticalId as Vertical),
-        status: leadData.status || 'new',
-        source: leadData.source || 'meta',
-        assignedTo: leadData.assignedTo || null,
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-        notes: leadData.notes || [],
-        followUpDate: leadData.followUpDate,
-      };
-      setLeads([newLead, ...leads]);
-    }
+    // TODO: Implement save to database
+    console.log('Save lead:', leadData);
   };
 
   const handleConvert = (leadId: string) => {
-    const lead = leads.find(l => l.id === leadId);
+    const lead = verticalLeads.find(l => l.id === leadId);
     if (!lead) return;
 
     // For B2B and B2C apps, show subscription selection dialog
@@ -96,12 +93,8 @@ export default function VerticalPage() {
       setSubscriptionLead(lead);
       setIsSubscriptionDialogOpen(true);
     } else {
-      // For other verticals, just mark as converted
-      setLeads(leads.map(l => 
-        l.id === leadId 
-          ? { ...l, status: 'converted' as const, updatedAt: new Date().toISOString() }
-          : l
-      ));
+      // TODO: Implement status update in database
+      console.log('Convert lead:', leadId);
     }
   };
 
@@ -112,12 +105,8 @@ export default function VerticalPage() {
   ) => {
     if (!subscriptionLead) return;
 
-    // Mark lead as converted
-    setLeads(leads.map(l => 
-      l.id === subscriptionLead.id 
-        ? { ...l, status: 'converted' as const, updatedAt: new Date().toISOString() }
-        : l
-    ));
+    // TODO: Implement status update in database
+    console.log('Convert lead with subscription:', subscriptionLead.id);
 
     // Add to converted subscriptions
     addConvertedSubscription({
@@ -149,7 +138,9 @@ export default function VerticalPage() {
 
         {/* Leads Table - hide vertical column since we're already in a vertical */}
         <div>
-          <h2 className="text-lg font-semibold text-foreground mb-4">Leads</h2>
+          <h2 className="text-lg font-semibold text-foreground mb-4">
+            Leads {leadsData && `(${leadsData.total})`}
+          </h2>
           <LeadsTable 
             leads={verticalLeads} 
             onEdit={handleEditLead}
@@ -160,6 +151,35 @@ export default function VerticalPage() {
             }}
             showVertical={false}
           />
+          
+          {/* Pagination */}
+          {leadsData && leadsData.totalPages > 1 && (
+            <div className="flex items-center justify-between mt-4">
+              <p className="text-sm text-muted-foreground">
+                Page {page} of {leadsData.totalPages}
+              </p>
+              <div className="flex gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setPage(p => Math.max(1, p - 1))}
+                  disabled={page === 1}
+                >
+                  <ChevronLeft className="h-4 w-4" />
+                  Previous
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setPage(p => Math.min(leadsData.totalPages, p + 1))}
+                  disabled={page === leadsData.totalPages}
+                >
+                  Next
+                  <ChevronRight className="h-4 w-4" />
+                </Button>
+              </div>
+            </div>
+          )}
         </div>
       </div>
 
@@ -170,7 +190,7 @@ export default function VerticalPage() {
         lead={editingLead}
         onSave={handleSaveLead}
         onPostLead={(leadId, postData) => {
-          const leadToPost = leads.find(l => l.id === leadId);
+          const leadToPost = verticalLeads.find(l => l.id === leadId);
           if (leadToPost) {
             postLead({ ...leadToPost, status: 'converted' }, postData.vendorConfigs);
           }
