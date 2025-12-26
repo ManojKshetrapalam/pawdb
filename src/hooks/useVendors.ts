@@ -15,12 +15,19 @@ const isValidName = (name: string | null): boolean => {
   return true;
 };
 
+// Get the best display name (prioritize business_name)
+const getDisplayName = (row: PlannerRow): string => {
+  if (isValidName(row.business_name)) return row.business_name!;
+  if (isValidName(row.name)) return row.name;
+  return 'Unknown Business';
+};
+
 // Map database row to Vendor type
 const mapPlannerToVendor = (row: PlannerRow): Vendor => {
   return {
     id: row.id,
-    businessName: row.business_name || row.name || 'Unknown Business',
-    contactName: row.name || 'Unknown',
+    businessName: getDisplayName(row),
+    contactName: isValidName(row.name) ? row.name : 'Unknown',
     email: row.email || '',
     phone: row.mobile || '',
     category: row.specialization || 'General',
@@ -29,6 +36,11 @@ const mapPlannerToVendor = (row: PlannerRow): Vendor => {
     joinedAt: row.created_at || new Date().toISOString(),
     location: row.city || 'Unknown',
   };
+};
+
+// Check if a record has at least one valid name
+const hasValidDisplayName = (row: PlannerRow): boolean => {
+  return isValidName(row.business_name) || isValidName(row.name);
 };
 
 interface UseVendorsOptions {
@@ -50,7 +62,7 @@ export const useVendors = (options: UseVendorsOptions = {}) => {
       let query = supabase
         .from('planners')
         .select('*', { count: 'exact' })
-        .order('name', { ascending: true })
+        .order('business_name', { ascending: true, nullsFirst: false })
         .range(from, to);
       
       // Apply subscription filter at DB level
@@ -65,7 +77,7 @@ export const useVendors = (options: UseVendorsOptions = {}) => {
       if (error) throw error;
       
       // Filter out invalid/placeholder records (client-side)
-      let validRecords = (data || []).filter(row => isValidName(row.name));
+      let validRecords = (data || []).filter(row => hasValidDisplayName(row));
       
       // Apply app filter (client-side since it's computed)
       if (appFilter === 'has-app') {
@@ -92,9 +104,11 @@ export const useVendorStats = () => {
       // Get all planners with valid names
       const { data } = await supabase
         .from('planners')
-        .select('name, chk_subscription, android_token, iphone_token');
+        .select('name, business_name, chk_subscription, android_token, iphone_token');
       
-      const validRecords = (data || []).filter(row => isValidName(row.name));
+      const validRecords = (data || []).filter(row => 
+        isValidName(row.business_name) || isValidName(row.name)
+      );
       const subscribed = validRecords.filter(row => row.chk_subscription).length;
       const withApp = validRecords.filter(row => !!row.android_token || !!row.iphone_token).length;
       
