@@ -26,6 +26,7 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { Lead, VERTICALS, Vertical, LeadSource } from '@/types';
+import { mockUsers } from '@/data/mockData';
 import { Upload, FileSpreadsheet, Download, AlertCircle, CheckCircle2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -153,7 +154,24 @@ export function BulkUploadDialog({ open, onOpenChange, onUpload }: BulkUploadDia
   };
 
   const downloadTemplate = () => {
-    const template = 'Name,Email,Phone,Vertical,Source\nJohn Doe,john@example.com,9876543210,app-b2b,meta\nJane Smith,jane@example.com,9876543211,buy-leads,google';
+    const verticalsList = VERTICALS.map(v => v.id).join(', ');
+    const employeesList = mockUsers.map(u => `${u.name} (${u.role})`).join(', ');
+    
+    const template = `Name,Email,Phone,Vertical,Source
+John Doe,john@example.com,9876543210,app-b2b,meta
+Jane Smith,jane@example.com,9876543211,buy-leads,google
+
+--- REFERENCE (Delete this section before uploading) ---
+
+VERTICALS (use exactly as shown):
+${verticalsList}
+
+SOURCES (use exactly as shown):
+meta, google, organic, referral
+
+EMPLOYEES:
+${employeesList}`;
+    
     const blob = new Blob([template], { type: 'text/csv' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
