@@ -10,6 +10,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
+import { ScrollArea } from '@/components/ui/scroll-area';
 import { 
   Phone, 
   Mail, 
@@ -21,24 +22,14 @@ import {
   Building2,
   User,
   ExternalLink,
-  Eye,
   ShoppingCart,
-  Clock,
   TrendingUp,
-  Activity
+  Activity,
+  Loader2
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { toast } from 'sonner';
-
-// Mock usage stats - in production this would come from the backend
-const getMockUsageStats = (vendorId: string) => ({
-  appOpens: Math.floor(Math.random() * 200) + 50,
-  lastActive: new Date(Date.now() - Math.floor(Math.random() * 7 * 24 * 60 * 60 * 1000)).toISOString(),
-  leadsViewed: Math.floor(Math.random() * 50) + 10,
-  leadsPurchased: Math.floor(Math.random() * 15) + 2,
-  totalSpent: Math.floor(Math.random() * 10000) + 1000,
-  avgSessionTime: Math.floor(Math.random() * 10) + 2,
-});
+import { usePlannerSpending } from '@/hooks/useRevenue';
 
 interface VendorDetailsDialogProps {
   vendor: Vendor | null;
@@ -47,6 +38,11 @@ interface VendorDetailsDialogProps {
 }
 
 export function VendorDetailsDialog({ vendor, open, onOpenChange }: VendorDetailsDialogProps) {
+  // Get planner spending data - need legacy_id from vendor
+  const { data: spendingData, isLoading: spendingLoading } = usePlannerSpending(
+    vendor?.legacyId || null
+  );
+
   if (!vendor) return null;
 
   const handleNotify = () => {
@@ -197,93 +193,67 @@ export function VendorDetailsDialog({ vendor, open, onOpenChange }: VendorDetail
             </div>
           </div>
 
-          {/* App Usage Stats - Only show if vendor has app */}
-          {vendor.hasApp && (
-            <>
-              <Separator />
-              <div>
-                <div className="flex items-center gap-2 mb-4">
-                  <Activity className="h-4 w-4 text-primary" />
-                  <h4 className="text-sm font-semibold">App Usage Statistics</h4>
-                </div>
-                
-                {(() => {
-                  const stats = getMockUsageStats(vendor.id);
-                  return (
-                    <div className="grid grid-cols-2 gap-3">
-                      <Card className="bg-primary/5 border-primary/20">
-                        <CardContent className="p-3">
-                          <div className="flex items-center gap-2">
-                            <Smartphone className="h-4 w-4 text-primary" />
-                            <div>
-                              <p className="text-lg font-bold text-primary">{stats.appOpens}</p>
-                              <p className="text-xs text-muted-foreground">App Opens</p>
-                            </div>
-                          </div>
-                        </CardContent>
-                      </Card>
-
-                      <Card className="bg-success/5 border-success/20">
-                        <CardContent className="p-3">
-                          <div className="flex items-center gap-2">
-                            <Eye className="h-4 w-4 text-success" />
-                            <div>
-                              <p className="text-lg font-bold text-success">{stats.leadsViewed}</p>
-                              <p className="text-xs text-muted-foreground">Leads Viewed</p>
-                            </div>
-                          </div>
-                        </CardContent>
-                      </Card>
-
-                      <Card className="bg-warning/5 border-warning/20">
-                        <CardContent className="p-3">
-                          <div className="flex items-center gap-2">
-                            <ShoppingCart className="h-4 w-4 text-warning" />
-                            <div>
-                              <p className="text-lg font-bold text-warning">{stats.leadsPurchased}</p>
-                              <p className="text-xs text-muted-foreground">Leads Purchased</p>
-                            </div>
-                          </div>
-                        </CardContent>
-                      </Card>
-
-                      <Card className="bg-info/5 border-info/20">
-                        <CardContent className="p-3">
-                          <div className="flex items-center gap-2">
-                            <TrendingUp className="h-4 w-4 text-info" />
-                            <div>
-                              <p className="text-lg font-bold text-info">₹{stats.totalSpent.toLocaleString()}</p>
-                              <p className="text-xs text-muted-foreground">Total Spent</p>
-                            </div>
-                          </div>
-                        </CardContent>
-                      </Card>
-
-                      <Card className="bg-muted/50 border-border col-span-2">
-                        <CardContent className="p-3">
-                          <div className="flex items-center justify-between">
-                            <div className="flex items-center gap-2">
-                              <Clock className="h-4 w-4 text-muted-foreground" />
-                              <div>
-                                <p className="text-xs text-muted-foreground">Last Active</p>
-                                <p className="text-sm font-medium">
-                                  {format(new Date(stats.lastActive), 'MMM d, yyyy h:mm a')}
-                                </p>
-                              </div>
-                            </div>
-                            <div className="text-right">
-                              <p className="text-xs text-muted-foreground">Avg Session</p>
-                              <p className="text-sm font-medium">{stats.avgSessionTime} min</p>
-                            </div>
-                          </div>
-                        </CardContent>
-                      </Card>
-                    </div>
-                  );
-                })()}
+          {/* Spending Stats */}
+          <Separator />
+          <div>
+            <div className="flex items-center gap-2 mb-4">
+              <Activity className="h-4 w-4 text-primary" />
+              <h4 className="text-sm font-semibold">Lead Purchase History</h4>
+            </div>
+            
+            {spendingLoading ? (
+              <div className="flex items-center justify-center py-4">
+                <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
               </div>
-            </>
-          )}
+            ) : spendingData && spendingData.leadsPurchased > 0 ? (
+              <div className="space-y-3">
+                <div className="grid grid-cols-2 gap-3">
+                  <Card className="bg-warning/5 border-warning/20">
+                    <CardContent className="p-3">
+                      <div className="flex items-center gap-2">
+                        <ShoppingCart className="h-4 w-4 text-warning" />
+                        <div>
+                          <p className="text-lg font-bold text-warning">{spendingData.leadsPurchased}</p>
+                          <p className="text-xs text-muted-foreground">Leads Purchased</p>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+
+                  <Card className="bg-success/5 border-success/20">
+                    <CardContent className="p-3">
+                      <div className="flex items-center gap-2">
+                        <TrendingUp className="h-4 w-4 text-success" />
+                        <div>
+                          <p className="text-lg font-bold text-success">₹{spendingData.totalSpent.toLocaleString()}</p>
+                          <p className="text-xs text-muted-foreground">Total Spent</p>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                </div>
+
+                {/* Recent Purchases */}
+                {spendingData.purchases.length > 0 && (
+                  <ScrollArea className="h-[120px]">
+                    <div className="space-y-2">
+                      {spendingData.purchases.slice(0, 5).map((purchase) => (
+                        <div key={purchase.id} className="flex items-center justify-between text-sm p-2 rounded bg-muted/30">
+                          <div>
+                            <p className="font-medium">{purchase.lead_name || `Lead #${purchase.lead_id}`}</p>
+                            <p className="text-xs text-muted-foreground">{purchase.lead_city || 'Unknown'}</p>
+                          </div>
+                          <p className="font-semibold text-success">₹{purchase.price.toLocaleString()}</p>
+                        </div>
+                      ))}
+                    </div>
+                  </ScrollArea>
+                )}
+              </div>
+            ) : (
+              <p className="text-sm text-muted-foreground text-center py-4">No purchases yet</p>
+            )}
+          </div>
 
           {/* Actions */}
           <div className="flex gap-3 pt-2">

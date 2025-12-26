@@ -16,17 +16,19 @@ import {
   DollarSign,
   CalendarIcon,
   Percent,
-  Gift
+  Gift,
+  Loader2
 } from 'lucide-react';
 import { Lead } from '@/types';
 import { DateRange } from 'react-day-picker';
+import { useBuyLeadsStats } from '@/hooks/useRevenue';
 
 interface VerticalStatsProps {
   verticalId: string;
   leads: Lead[];
 }
 
-// Mock data for demonstration
+// Mock data for app stats (would need separate implementation)
 const getMockAppStats = (verticalId: string) => ({
   totalLeads: 156,
   appDownloads: 2340,
@@ -34,21 +36,13 @@ const getMockAppStats = (verticalId: string) => ({
   totalRevenue: 267500,
 });
 
-const getMockBuyLeadsStats = () => ({
-  leadsGenerated: 450,
-  leadsPosted: 320,
-  leadsSold: 285,
-  fullPriceSold: 180,
-  discountSold: 75,
-  freeSold: 30,
-  totalRevenue: 142500,
-});
-
 export function VerticalStats({ verticalId, leads }: VerticalStatsProps) {
   const [dateRange, setDateRange] = useState<DateRange | undefined>({
     from: new Date(new Date().setDate(new Date().getDate() - 30)),
     to: new Date(),
   });
+
+  const { data: buyLeadsStats, isLoading: buyLeadsLoading } = useBuyLeadsStats();
 
   // Filter leads by date range
   const filteredLeads = leads.filter((lead) => {
@@ -65,11 +59,10 @@ export function VerticalStats({ verticalId, leads }: VerticalStatsProps) {
   const stats = {
     total: filteredLeads.length,
     converted: filteredLeads.filter((l) => l.status === 'converted').length,
-    revenue: filteredLeads.filter((l) => l.status === 'converted').length * 2500, // Mock revenue
+    revenue: filteredLeads.filter((l) => l.status === 'converted').length * 2500,
   };
 
   const appStats = getMockAppStats(verticalId);
-  const buyLeadsStats = getMockBuyLeadsStats();
 
   const isAppVertical = verticalId === 'app-b2b' || verticalId === 'app-b2c';
   const isBuyLeads = verticalId === 'buy-leads';
@@ -159,25 +152,30 @@ export function VerticalStats({ verticalId, leads }: VerticalStatsProps) {
           />
         </div>
       ) : isBuyLeads ? (
-        // Buy Leads Stats
+        // Buy Leads Stats - Real Data
+        buyLeadsLoading ? (
+          <div className="flex items-center justify-center py-8">
+            <Loader2 className="h-6 w-6 animate-spin text-primary" />
+          </div>
+        ) : (
         <div className="space-y-4">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <StatCard
               title="Leads Generated"
-              value={buyLeadsStats.leadsGenerated}
+              value={(buyLeadsStats?.leadsGenerated || 0).toLocaleString()}
               icon={Target}
             />
             <StatCard
               title="Leads Posted"
-              value={buyLeadsStats.leadsPosted}
-              change={`${Math.round((buyLeadsStats.leadsPosted / buyLeadsStats.leadsGenerated) * 100)}% posted`}
+              value={(buyLeadsStats?.leadsPosted || 0).toLocaleString()}
+              change={buyLeadsStats?.leadsGenerated ? `${Math.round((buyLeadsStats.leadsPosted / buyLeadsStats.leadsGenerated) * 100)}% posted` : '0%'}
               changeType="neutral"
               icon={Send}
               iconColor="text-info"
             />
             <StatCard
               title="Total Revenue"
-              value={`₹${buyLeadsStats.totalRevenue.toLocaleString()}`}
+              value={`₹${(buyLeadsStats?.totalRevenue || 0).toLocaleString()}`}
               icon={DollarSign}
               iconColor="text-warning"
             />
@@ -188,7 +186,7 @@ export function VerticalStats({ verticalId, leads }: VerticalStatsProps) {
             <div className="flex items-start justify-between mb-4">
               <div>
                 <p className="text-sm font-medium text-muted-foreground">Leads Sold</p>
-                <p className="mt-2 text-2xl sm:text-3xl font-bold text-card-foreground">{buyLeadsStats.leadsSold}</p>
+                <p className="mt-2 text-2xl sm:text-3xl font-bold text-card-foreground">{buyLeadsStats?.leadsSold || 0}</p>
               </div>
               <div className="rounded-lg bg-muted p-2 sm:p-3 text-success">
                 <ShoppingCart className="h-4 w-4 sm:h-5 sm:w-5" />
@@ -203,7 +201,7 @@ export function VerticalStats({ verticalId, leads }: VerticalStatsProps) {
                 </div>
                 <div className="flex-1 flex sm:block items-center justify-between">
                   <p className="text-xs text-muted-foreground">Full Price</p>
-                  <p className="text-lg font-semibold text-card-foreground">{buyLeadsStats.fullPriceSold}</p>
+                  <p className="text-lg font-semibold text-card-foreground">{buyLeadsStats?.fullPriceSold || 0}</p>
                 </div>
               </div>
               <div className="flex items-center gap-2">
@@ -212,7 +210,7 @@ export function VerticalStats({ verticalId, leads }: VerticalStatsProps) {
                 </div>
                 <div className="flex-1 flex sm:block items-center justify-between">
                   <p className="text-xs text-muted-foreground">Discount</p>
-                  <p className="text-lg font-semibold text-card-foreground">{buyLeadsStats.discountSold}</p>
+                  <p className="text-lg font-semibold text-card-foreground">{buyLeadsStats?.discountSold || 0}</p>
                 </div>
               </div>
               <div className="flex items-center gap-2">
@@ -221,12 +219,13 @@ export function VerticalStats({ verticalId, leads }: VerticalStatsProps) {
                 </div>
                 <div className="flex-1 flex sm:block items-center justify-between">
                   <p className="text-xs text-muted-foreground">Free</p>
-                  <p className="text-lg font-semibold text-card-foreground">{buyLeadsStats.freeSold}</p>
+                  <p className="text-lg font-semibold text-card-foreground">{buyLeadsStats?.freeSold || 0}</p>
                 </div>
               </div>
             </div>
           </div>
         </div>
+        )
       ) : (
         // Default Analytics Stats for other verticals
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">

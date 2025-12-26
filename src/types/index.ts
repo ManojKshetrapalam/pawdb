@@ -98,6 +98,7 @@ export interface User {
 
 export interface Vendor {
   id: string;
+  legacyId?: number;
   businessName: string;
   contactName: string;
   email: string;

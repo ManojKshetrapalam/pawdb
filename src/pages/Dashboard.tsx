@@ -9,11 +9,13 @@ import { FollowUpReminderDialog } from '@/components/leads/FollowUpReminderDialo
 import { VERTICALS, Lead } from '@/types';
 import { useRecentLeads, useLeadStats } from '@/hooks/useLeads';
 import { useFollowUpReminders } from '@/hooks/useFollowUpReminders';
-import { Users, TrendingUp, CheckCircle, Clock, Store, Loader2 } from 'lucide-react';
+import { useRevenueStats } from '@/hooks/useRevenue';
+import { Users, TrendingUp, CheckCircle, Clock, Store, Loader2, DollarSign, ShoppingCart } from 'lucide-react';
 
 export default function Dashboard() {
   const { data: recentLeads = [], isLoading } = useRecentLeads(10);
   const { data: leadStats } = useLeadStats();
+  const { data: revenueStats } = useRevenueStats();
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingLead, setEditingLead] = useState<Lead | null>(null);
 
@@ -85,27 +87,27 @@ export default function Dashboard() {
             icon={Users}
           />
           <StatCard
-            title="App B2B"
-            value={stats.appB2B.toLocaleString()}
-            change="Business leads"
-            changeType="neutral"
-            icon={TrendingUp}
-            iconColor="text-info"
-          />
-          <StatCard
-            title="App B2C"
-            value={stats.appB2C.toLocaleString()}
-            change="Consumer leads"
-            changeType="neutral"
-            icon={CheckCircle}
+            title="Total Revenue"
+            value={`₹${(revenueStats?.totalRevenue || 0).toLocaleString()}`}
+            change={`${revenueStats?.totalLeadsSold || 0} leads sold`}
+            changeType="positive"
+            icon={DollarSign}
             iconColor="text-success"
           />
           <StatCard
-            title="Buy Leads"
-            value={stats.buyLeads.toLocaleString()}
-            change="Purchase leads"
+            title="Leads Sold"
+            value={(revenueStats?.totalLeadsSold || 0).toLocaleString()}
+            change={`${revenueStats?.uniqueBuyers || 0} unique buyers`}
             changeType="neutral"
-            icon={Clock}
+            icon={ShoppingCart}
+            iconColor="text-info"
+          />
+          <StatCard
+            title="Avg Lead Price"
+            value={`₹${Math.round(revenueStats?.avgLeadPrice || 0).toLocaleString()}`}
+            change="Per lead"
+            changeType="neutral"
+            icon={TrendingUp}
             iconColor="text-warning"
           />
         </div>
