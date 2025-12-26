@@ -51,29 +51,46 @@ function parseCSV(csvContent: string): { headers: string[]; rows: string[][] } {
 function parseDate(dateStr: string | null): string | null {
   if (!dateStr || dateStr === 'NULL' || dateStr.trim() === '') return null;
   
-  // Handle various date formats
-  const formats = [
-    /^(\d{2})-(\d{2})-(\d{4}) (\d{2}):(\d{2})$/, // DD-MM-YYYY HH:mm
-    /^(\d{2})-(\d{2})-(\d{4})$/, // DD-MM-YYYY
-    /^(\d{4})-(\d{2})-(\d{2})$/, // YYYY-MM-DD
-    /^(\d{2})\/(\d{2})\/(\d{4}) (\d{2}):(\d{2}):(\d{2}) (AM|PM)$/, // MM/DD/YYYY HH:mm:ss AM/PM
-  ];
-  
   try {
     // DD-MM-YYYY HH:mm format
     let match = dateStr.match(/^(\d{2})-(\d{2})-(\d{4}) (\d{2}):(\d{2})$/);
     if (match) {
-      return `${match[3]}-${match[2]}-${match[1]}T${match[4]}:${match[5]}:00`;
+      const [, day, month, year, hour, min] = match;
+      // Validate and swap if month > 12 (date might be DD-MM-YYYY with swapped values)
+      const m = parseInt(month);
+      const d = parseInt(day);
+      if (m > 12 && d <= 12) {
+        return `${year}-${day.padStart(2, '0')}-${month.padStart(2, '0')}T${hour}:${min}:00`;
+      }
+      if (m > 12) return null; // Invalid date
+      return `${year}-${month}-${day}T${hour}:${min}:00`;
     }
     
     // DD-MM-YYYY format
     match = dateStr.match(/^(\d{2})-(\d{2})-(\d{4})$/);
     if (match) {
-      return `${match[3]}-${match[2]}-${match[1]}`;
+      const [, day, month, year] = match;
+      const m = parseInt(month);
+      const d = parseInt(day);
+      if (m > 12 && d <= 12) {
+        return `${year}-${day.padStart(2, '0')}-${month.padStart(2, '0')}`;
+      }
+      if (m > 12) return null;
+      return `${year}-${month}-${day}`;
     }
     
-    // Already in YYYY-MM-DD format
-    if (/^\d{4}-\d{2}-\d{2}/.test(dateStr)) {
+    // YYYY-MM-DD or YYYY-DD-MM format (might have swapped day/month)
+    match = dateStr.match(/^(\d{4})-(\d{2})-(\d{2})(.*)$/);
+    if (match) {
+      const [, year, part1, part2, rest] = match;
+      const p1 = parseInt(part1);
+      const p2 = parseInt(part2);
+      // If part1 > 12, it's actually the day (YYYY-DD-MM), swap it
+      if (p1 > 12 && p2 <= 12) {
+        return `${year}-${part2}-${part1}${rest}`;
+      }
+      // If part1 > 12 and part2 > 12, invalid date
+      if (p1 > 12) return null;
       return dateStr;
     }
     
