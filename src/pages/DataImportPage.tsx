@@ -7,6 +7,7 @@ import { Badge } from '@/components/ui/badge';
 import { Upload, CheckCircle, XCircle, Loader2, FileText, AlertCircle } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { Progress } from '@/components/ui/progress';
 
 
 interface TableConfig {
@@ -34,43 +35,104 @@ interface ImportStatus {
   success?: number;
   failed?: number;
   errors?: string[];
+  progress?: number;
+  totalChunks?: number;
+  currentChunk?: number;
+}
+
+// Split CSV into chunks while preserving the header
+function splitCSVIntoChunks(csvContent: string, chunkSize: number = 5000): string[] {
+  const lines = csvContent.split('\n');
+  if (lines.length <= 1) return [csvContent];
+  
+  const header = lines[0];
+  const dataLines = lines.slice(1).filter(line => line.trim());
+  const chunks: string[] = [];
+  
+  for (let i = 0; i < dataLines.length; i += chunkSize) {
+    const chunkLines = dataLines.slice(i, i + chunkSize);
+    chunks.push(header + '\n' + chunkLines.join('\n'));
+  }
+  
+  return chunks;
 }
 
 const DataImportPage: React.FC = () => {
   const [importStatuses, setImportStatuses] = useState<Record<string, ImportStatus>>({});
-  const [isImporting, setIsImporting] = useState(false);
   const fileInputRefs = useRef<Record<string, HTMLInputElement | null>>({});
 
   const handleFileSelect = async (tableName: string, file: File) => {
     setImportStatuses(prev => ({
       ...prev,
-      [tableName]: { tableName, status: 'uploading' }
+      [tableName]: { tableName, status: 'uploading', progress: 0 }
     }));
 
     try {
       const csvContent = await file.text();
       
-      const { data, error } = await supabase.functions.invoke('import-csv', {
-        body: { table: tableName, csvContent, batchSize: 500 }
-      });
+      // Split into chunks for large files
+      const chunks = splitCSVIntoChunks(csvContent, 5000);
+      const totalChunks = chunks.length;
+      
+      let totalSuccess = 0;
+      let totalFailed = 0;
+      const allErrors: string[] = [];
+      
+      console.log(`Starting import for ${tableName} with ${totalChunks} chunks`);
+      
+      for (let i = 0; i < chunks.length; i++) {
+        setImportStatuses(prev => ({
+          ...prev,
+          [tableName]: { 
+            tableName, 
+            status: 'uploading', 
+            progress: Math.round((i / totalChunks) * 100),
+            totalChunks,
+            currentChunk: i + 1,
+            success: totalSuccess,
+            failed: totalFailed
+          }
+        }));
+        
+        const { data, error } = await supabase.functions.invoke('import-csv', {
+          body: { table: tableName, csvContent: chunks[i], batchSize: 100 }
+        });
 
-      if (error) throw error;
+        if (error) {
+          console.error(`Chunk ${i + 1} error:`, error);
+          allErrors.push(`Chunk ${i + 1}: ${error.message}`);
+          // Continue with next chunk instead of failing completely
+          continue;
+        }
 
+        totalSuccess += data.success || 0;
+        totalFailed += data.failed || 0;
+        
+        if (data.errors && data.errors.length > 0) {
+          allErrors.push(...data.errors.slice(0, 3));
+        }
+        
+        console.log(`Chunk ${i + 1}/${totalChunks} complete: ${data.success} success, ${data.failed} failed`);
+      }
+
+      const finalStatus: ImportStatus = {
+        tableName,
+        status: totalFailed === 0 && allErrors.length === 0 ? 'success' : 'error',
+        success: totalSuccess,
+        failed: totalFailed,
+        errors: allErrors.slice(0, 5),
+        progress: 100
+      };
+      
       setImportStatuses(prev => ({
         ...prev,
-        [tableName]: {
-          tableName,
-          status: data.failed === 0 ? 'success' : 'error',
-          success: data.success,
-          failed: data.failed,
-          errors: data.errors
-        }
+        [tableName]: finalStatus
       }));
 
-      if (data.failed === 0) {
-        toast.success(`Imported ${data.success} records to ${tableName}`);
+      if (totalFailed === 0 && allErrors.length === 0) {
+        toast.success(`Imported ${totalSuccess.toLocaleString()} records to ${tableName}`);
       } else {
-        toast.warning(`Imported ${data.success} records, ${data.failed} failed`);
+        toast.warning(`Imported ${totalSuccess.toLocaleString()} records, ${totalFailed.toLocaleString()} failed`);
       }
     } catch (error) {
       console.error('Import error:', error);
@@ -106,13 +168,17 @@ const DataImportPage: React.FC = () => {
     
     switch (status.status) {
       case 'uploading':
-        return <Badge variant="secondary">Uploading...</Badge>;
+        return (
+          <Badge variant="secondary">
+            Chunk {status.currentChunk || 1}/{status.totalChunks || 1} ({status.progress || 0}%)
+          </Badge>
+        );
       case 'success':
-        return <Badge className="bg-green-500">{status.success} imported</Badge>;
+        return <Badge className="bg-green-500">{(status.success || 0).toLocaleString()} imported</Badge>;
       case 'error':
         return (
           <Badge variant="destructive">
-            {status.success || 0} ok, {status.failed || 0} failed
+            {(status.success || 0).toLocaleString()} ok, {(status.failed || 0).toLocaleString()} failed
           </Badge>
         );
       default:
@@ -132,14 +198,14 @@ const DataImportPage: React.FC = () => {
               CSV Data Import
             </CardTitle>
             <CardDescription>
-              Upload your CSV files to import data into the database. Each file should match the expected format for its table.
+              Upload your CSV files to import data into the database. Large files are automatically chunked for reliable import.
             </CardDescription>
           </CardHeader>
           <CardContent>
             <div className="flex items-center gap-2 p-4 bg-amber-500/10 border border-amber-500/20 rounded-lg mb-4">
               <AlertCircle className="h-5 w-5 text-amber-500" />
               <p className="text-sm text-amber-700 dark:text-amber-300">
-                Large files may take several minutes to import. Please be patient and don't close the page.
+                Large files are split into chunks of 5,000 rows each for reliable import. Progress is tracked per chunk.
               </p>
             </div>
           </CardContent>
@@ -156,11 +222,16 @@ const DataImportPage: React.FC = () => {
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-4">
                       {getStatusIcon(status)}
-                      <div>
+                      <div className="flex-1">
                         <h3 className="font-medium">{table.name}</h3>
                         <p className="text-sm text-muted-foreground">
                           {table.description} • Expected: ~{table.expectedRows.toLocaleString()} rows
                         </p>
+                        {status?.status === 'uploading' && status.success !== undefined && (
+                          <p className="text-xs text-muted-foreground mt-1">
+                            {status.success.toLocaleString()} imported so far...
+                          </p>
+                        )}
                         {status?.errors && status.errors.length > 0 && (
                           <p className="text-xs text-destructive mt-1">
                             {status.errors[0]}
@@ -174,7 +245,7 @@ const DataImportPage: React.FC = () => {
                         type="file"
                         accept=".csv"
                         className="hidden"
-                        ref={(el) => fileInputRefs.current[table.tableName] = el}
+                        ref={(el) => { fileInputRefs.current[table.tableName] = el; }}
                         onChange={(e) => {
                           const file = e.target.files?.[0];
                           if (file) handleFileSelect(table.tableName, file);
@@ -201,6 +272,9 @@ const DataImportPage: React.FC = () => {
                       </Button>
                     </div>
                   </div>
+                  {status?.status === 'uploading' && (
+                    <Progress value={status.progress || 0} className="mt-3 h-2" />
+                  )}
                 </CardContent>
               </Card>
             );
