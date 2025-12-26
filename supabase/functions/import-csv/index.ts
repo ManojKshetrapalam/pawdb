@@ -166,7 +166,16 @@ Deno.serve(async (req) => {
       }
 
       if (records.length > 0) {
-        const { error } = await supabase.from(table).insert(records);
+        // Team Users is often re-imported; ignore duplicates by legacy_id so existing rows don't fail the whole batch.
+        const shouldIgnoreDuplicates = table === 'team_users';
+
+        const { data, error } = shouldIgnoreDuplicates
+          ? await supabase
+              .from(table)
+              .upsert(records, { onConflict: 'legacy_id', ignoreDuplicates: true })
+              .select('legacy_id')
+          : await supabase.from(table).insert(records);
+
         if (error) {
           console.error(`Batch insert error:`, error);
           results.failed += records.length;
@@ -174,7 +183,8 @@ Deno.serve(async (req) => {
             results.errors.push(`Batch ${Math.floor(i / batchSize)}: ${error.message}`);
           }
         } else {
-          results.success += records.length;
+          // When ignoring duplicates, the returned rows (if any) represent the records actually inserted.
+          results.success += shouldIgnoreDuplicates ? (data?.length ?? 0) : records.length;
         }
       }
 
