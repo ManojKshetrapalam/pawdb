@@ -13,15 +13,28 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { Filter, Crown, Smartphone, Loader2 } from 'lucide-react';
+import { Filter, Crown, Smartphone, Loader2, ChevronLeft, ChevronRight } from 'lucide-react';
 
 export default function VendorsPage() {
   const [subscriptionFilter, setSubscriptionFilter] = useState<string>('all');
   const [appFilter, setAppFilter] = useState<string>('all');
+  const [page, setPage] = useState(1);
+  const pageSize = 50;
+  
   const [selectedVendor, setSelectedVendor] = useState<Vendor | null>(null);
   const [isDetailsOpen, setIsDetailsOpen] = useState(false);
   
-  const { data: vendors = [], isLoading } = useVendors();
+  const { data, isLoading } = useVendors({ 
+    page, 
+    pageSize, 
+    subscriptionFilter, 
+    appFilter 
+  });
+  
+  const vendors = data?.vendors || [];
+  const totalPages = data?.totalPages || 1;
+  const total = data?.total || 0;
+  
   const { data: vendorStats } = useVendorStats();
 
   const handleViewDetails = (vendor: Vendor) => {
@@ -29,21 +42,20 @@ export default function VendorsPage() {
     setIsDetailsOpen(true);
   };
 
-  const filteredVendors = vendors.filter((vendor) => {
-    const subscriptionMatch =
-      subscriptionFilter === 'all' ||
-      (subscriptionFilter === 'subscribed' && vendor.isSubscribed) ||
-      (subscriptionFilter === 'not-subscribed' && !vendor.isSubscribed);
-    const appMatch =
-      appFilter === 'all' ||
-      (appFilter === 'has-app' && vendor.hasApp) ||
-      (appFilter === 'no-app' && !vendor.hasApp);
-    return subscriptionMatch && appMatch;
-  });
+  const subscribedCount = vendorStats?.subscribed || 0;
+  const withAppCount = vendorStats?.withApp || 0;
+  const totalVendors = vendorStats?.total || 0;
 
-  const subscribedCount = vendorStats?.subscribed || vendors.filter((v) => v.isSubscribed).length;
-  const withAppCount = vendors.filter((v) => v.hasApp).length;
-  const totalVendors = vendorStats?.total || vendors.length;
+  // Reset to page 1 when filters change
+  const handleSubscriptionChange = (value: string) => {
+    setSubscriptionFilter(value);
+    setPage(1);
+  };
+
+  const handleAppChange = (value: string) => {
+    setAppFilter(value);
+    setPage(1);
+  };
 
   if (isLoading) {
     return (
@@ -60,7 +72,7 @@ export default function VendorsPage() {
     <AppLayout>
       <Header 
         title="Vendors" 
-        subtitle={`${totalVendors} registered vendors`}
+        subtitle={`${totalVendors.toLocaleString()} registered vendors`}
         showAddButton
         addButtonLabel="Add Vendor"
       />
@@ -70,11 +82,11 @@ export default function VendorsPage() {
         <div className="flex gap-4">
           <div className="flex items-center gap-2 rounded-lg bg-warning/10 px-4 py-2">
             <Crown className="h-4 w-4 text-warning" />
-            <span className="text-sm font-medium text-warning">{subscribedCount} Premium</span>
+            <span className="text-sm font-medium text-warning">{subscribedCount.toLocaleString()} Premium</span>
           </div>
           <div className="flex items-center gap-2 rounded-lg bg-muted px-4 py-2">
             <Smartphone className="h-4 w-4 text-muted-foreground" />
-            <span className="text-sm font-medium text-muted-foreground">{withAppCount} with App</span>
+            <span className="text-sm font-medium text-muted-foreground">{withAppCount.toLocaleString()} with App</span>
           </div>
         </div>
 
@@ -85,7 +97,7 @@ export default function VendorsPage() {
             <span className="text-sm font-medium text-muted-foreground">Filters:</span>
           </div>
           
-          <Select value={subscriptionFilter} onValueChange={setSubscriptionFilter}>
+          <Select value={subscriptionFilter} onValueChange={handleSubscriptionChange}>
             <SelectTrigger className="w-44">
               <SelectValue placeholder="Subscription" />
             </SelectTrigger>
@@ -96,7 +108,7 @@ export default function VendorsPage() {
             </SelectContent>
           </Select>
 
-          <Select value={appFilter} onValueChange={setAppFilter}>
+          <Select value={appFilter} onValueChange={handleAppChange}>
             <SelectTrigger className="w-40">
               <SelectValue placeholder="App Status" />
             </SelectTrigger>
@@ -114,6 +126,7 @@ export default function VendorsPage() {
               onClick={() => {
                 setSubscriptionFilter('all');
                 setAppFilter('all');
+                setPage(1);
               }}
             >
               Clear filters
@@ -123,18 +136,45 @@ export default function VendorsPage() {
 
         {/* Vendors Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-          {filteredVendors.map((vendor, index) => (
+          {vendors.map((vendor, index) => (
             <div key={vendor.id} style={{ animationDelay: `${index * 50}ms` }}>
               <VendorCard vendor={vendor} onViewDetails={handleViewDetails} />
             </div>
           ))}
         </div>
 
-        {filteredVendors.length === 0 && (
+        {vendors.length === 0 && (
           <div className="text-center py-12 text-muted-foreground">
             No vendors found matching your filters.
           </div>
         )}
+
+        {/* Pagination */}
+        <div className="flex items-center justify-between border-t pt-4">
+          <div className="text-sm text-muted-foreground">
+            Page {page} of {totalPages} ({total.toLocaleString()} total)
+          </div>
+          <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setPage(p => Math.max(1, p - 1))}
+              disabled={page <= 1}
+            >
+              <ChevronLeft className="h-4 w-4" />
+              Previous
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setPage(p => Math.min(totalPages, p + 1))}
+              disabled={page >= totalPages}
+            >
+              Next
+              <ChevronRight className="h-4 w-4" />
+            </Button>
+          </div>
+        </div>
       </div>
 
       {/* Vendor Details Dialog */}

@@ -18,25 +18,32 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { Filter, Upload, Loader2 } from 'lucide-react';
+import { Filter, Upload, Loader2, ChevronLeft, ChevronRight } from 'lucide-react';
 import { toast } from 'sonner';
 
 export default function LeadsPage() {
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [verticalFilter, setVerticalFilter] = useState<string>('all');
-  const { data: leads = [], isLoading } = useLeads();
+  const [page, setPage] = useState(1);
+  const pageSize = 50;
+  
+  const { data, isLoading } = useLeads({ 
+    page, 
+    pageSize, 
+    status: statusFilter, 
+    vertical: verticalFilter 
+  });
+  
+  const leads = data?.leads || [];
+  const totalPages = data?.totalPages || 1;
+  const total = data?.total || 0;
+  
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingLead, setEditingLead] = useState<Lead | null>(null);
   const [subscriptionLead, setSubscriptionLead] = useState<Lead | null>(null);
   const [isSubscriptionDialogOpen, setIsSubscriptionDialogOpen] = useState(false);
   const [isBulkUploadOpen, setIsBulkUploadOpen] = useState(false);
   const { addConvertedSubscription } = usePricing();
-
-  const filteredLeads = leads.filter((lead) => {
-    const statusMatch = statusFilter === 'all' || lead.status === statusFilter;
-    const verticalMatch = verticalFilter === 'all' || lead.vertical === verticalFilter;
-    return statusMatch && verticalMatch;
-  });
 
   const handleAddClick = () => {
     setEditingLead(null);
@@ -103,6 +110,17 @@ export default function LeadsPage() {
     setSubscriptionLead(null);
   };
 
+  // Reset to page 1 when filters change
+  const handleStatusChange = (value: string) => {
+    setStatusFilter(value);
+    setPage(1);
+  };
+
+  const handleVerticalChange = (value: string) => {
+    setVerticalFilter(value);
+    setPage(1);
+  };
+
   if (isLoading) {
     return (
       <AppLayout>
@@ -118,7 +136,7 @@ export default function LeadsPage() {
     <AppLayout>
       <Header 
         title="All Leads" 
-        subtitle={`${filteredLeads.length} leads found`}
+        subtitle={`${total.toLocaleString()} leads found`}
         showAddButton
         addButtonLabel="Add Lead"
         onAddClick={handleAddClick}
@@ -137,7 +155,7 @@ export default function LeadsPage() {
             Bulk Upload
           </Button>
           
-          <Select value={statusFilter} onValueChange={setStatusFilter}>
+          <Select value={statusFilter} onValueChange={handleStatusChange}>
             <SelectTrigger className="w-40">
               <SelectValue placeholder="Status" />
             </SelectTrigger>
@@ -151,13 +169,13 @@ export default function LeadsPage() {
             </SelectContent>
           </Select>
 
-          <Select value={verticalFilter} onValueChange={setVerticalFilter}>
+          <Select value={verticalFilter} onValueChange={handleVerticalChange}>
             <SelectTrigger className="w-48">
               <SelectValue placeholder="Vertical" />
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">All Verticals</SelectItem>
-              {VERTICALS.map((v) => (
+              {VERTICALS.slice(0, 3).map((v) => (
                 <SelectItem key={v.id} value={v.id}>
                   {v.name}
                 </SelectItem>
@@ -172,6 +190,7 @@ export default function LeadsPage() {
               onClick={() => {
                 setStatusFilter('all');
                 setVerticalFilter('all');
+                setPage(1);
               }}
             >
               Clear filters
@@ -181,11 +200,38 @@ export default function LeadsPage() {
 
         {/* Leads Table */}
         <LeadsTable 
-          leads={filteredLeads} 
+          leads={leads} 
           onEdit={handleEditLead}
           onConvert={handleConvert}
           onConvertWithSubscription={handleConvertWithSubscription}
         />
+
+        {/* Pagination */}
+        <div className="flex items-center justify-between border-t pt-4">
+          <div className="text-sm text-muted-foreground">
+            Page {page} of {totalPages} ({total.toLocaleString()} total)
+          </div>
+          <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setPage(p => Math.max(1, p - 1))}
+              disabled={page <= 1}
+            >
+              <ChevronLeft className="h-4 w-4" />
+              Previous
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setPage(p => Math.min(totalPages, p + 1))}
+              disabled={page >= totalPages}
+            >
+              Next
+              <ChevronRight className="h-4 w-4" />
+            </Button>
+          </div>
+        </div>
       </div>
 
       {/* Lead Form Dialog */}

@@ -7,32 +7,31 @@ import { LeadsTable } from '@/components/leads/LeadsTable';
 import { LeadFormDialog } from '@/components/leads/LeadFormDialog';
 import { FollowUpReminderDialog } from '@/components/leads/FollowUpReminderDialog';
 import { VERTICALS, Lead } from '@/types';
-import { useLeads, useLeadStats } from '@/hooks/useLeads';
+import { useRecentLeads, useLeadStats } from '@/hooks/useLeads';
 import { useFollowUpReminders } from '@/hooks/useFollowUpReminders';
 import { Users, TrendingUp, CheckCircle, Clock, Store, Loader2 } from 'lucide-react';
 
 export default function Dashboard() {
-  const { data: leads = [], isLoading } = useLeads();
+  const { data: recentLeads = [], isLoading } = useRecentLeads(10);
   const { data: leadStats } = useLeadStats();
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingLead, setEditingLead] = useState<Lead | null>(null);
 
   const stats = {
-    totalLeads: leadStats?.total || leads.length,
-    newLeads: leads.filter((l) => l.status === 'new').length,
-    converted: leads.filter((l) => l.status === 'converted').length,
-    pending: leads.filter((l) => l.status === 'contacted' || l.status === 'follow-up').length,
+    totalLeads: leadStats?.total || 0,
+    appB2B: leadStats?.appB2B || 0,
+    appB2C: leadStats?.appB2C || 0,
+    buyLeads: leadStats?.buyLeads || 0,
   };
 
   const getLeadCountByVertical = (verticalId: string) => {
-    return leads.filter((l) => l.vertical === verticalId).length;
+    const verticalDbMap: Record<string, string> = {
+      'app-b2b': 'App B2B',
+      'app-b2c': 'App B2C',
+      'buy-leads': 'Buy Leads',
+    };
+    return leadStats?.byEnquiry?.[verticalDbMap[verticalId]] || 0;
   };
-
-  const getNewLeadsByVertical = (verticalId: string) => {
-    return leads.filter((l) => l.vertical === verticalId && l.status === 'new').length;
-  };
-
-  const recentLeads = leads.slice(0, 5);
 
   const handleEditLead = (lead: Lead) => {
     setEditingLead(lead);
@@ -48,7 +47,7 @@ export default function Dashboard() {
     handleViewLead,
     handleSnooze,
   } = useFollowUpReminders({
-    leads,
+    leads: recentLeads,
     onLeadClick: handleEditLead,
   });
 
@@ -80,14 +79,14 @@ export default function Dashboard() {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
           <StatCard
             title="Total Leads"
-            value={stats.totalLeads}
-            change="+12% from last week"
-            changeType="positive"
+            value={stats.totalLeads.toLocaleString()}
+            change="All enquiries"
+            changeType="neutral"
             icon={Users}
           />
           <StatCard
             title="App B2B"
-            value={leadStats?.appB2B || 0}
+            value={stats.appB2B.toLocaleString()}
             change="Business leads"
             changeType="neutral"
             icon={TrendingUp}
@@ -95,7 +94,7 @@ export default function Dashboard() {
           />
           <StatCard
             title="App B2C"
-            value={leadStats?.appB2C || 0}
+            value={stats.appB2C.toLocaleString()}
             change="Consumer leads"
             changeType="neutral"
             icon={CheckCircle}
@@ -103,7 +102,7 @@ export default function Dashboard() {
           />
           <StatCard
             title="Buy Leads"
-            value={leadStats?.buyLeads || 0}
+            value={stats.buyLeads.toLocaleString()}
             change="Purchase leads"
             changeType="neutral"
             icon={Clock}
@@ -118,12 +117,12 @@ export default function Dashboard() {
             <h2 className="text-lg font-semibold text-foreground">Verticals</h2>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-            {VERTICALS.map((vertical, index) => (
+            {VERTICALS.slice(0, 3).map((vertical, index) => (
               <div key={vertical.id} style={{ animationDelay: `${index * 100}ms` }}>
                 <VerticalCard
                   vertical={vertical}
                   leadCount={getLeadCountByVertical(vertical.id)}
-                  newLeads={getNewLeadsByVertical(vertical.id)}
+                  newLeads={0}
                 />
               </div>
             ))}
@@ -141,7 +140,7 @@ export default function Dashboard() {
               View all →
             </a>
           </div>
-          <LeadsTable leads={recentLeads} onEdit={handleEditLead} />
+          <LeadsTable leads={recentLeads.slice(0, 5)} onEdit={handleEditLead} />
         </div>
       </div>
 
