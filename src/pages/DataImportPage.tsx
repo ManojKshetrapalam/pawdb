@@ -72,23 +72,35 @@ const DataImportPage: React.FC = () => {
     setIsLoadingCounts(true);
     const statuses: Record<string, ImportStatus> = {};
     
-    for (const table of TABLES) {
-      try {
-        const { count, error } = await supabase
-          .from(table.tableName as any)
-          .select('*', { count: 'exact', head: true });
-        
-        if (!error && count && count > 0) {
-          statuses[table.tableName] = {
-            tableName: table.tableName,
-            status: 'imported',
-            existingCount: count
-          };
+    // Run all count queries in parallel for speed
+    const results = await Promise.all(
+      TABLES.map(async (table) => {
+        try {
+          const { count, error } = await supabase
+            .from(table.tableName as any)
+            .select('*', { count: 'exact', head: true });
+          
+          console.log(`Count for ${table.tableName}:`, count, error);
+          
+          if (!error && count !== null && count > 0) {
+            return { tableName: table.tableName, count };
+          }
+        } catch (e) {
+          console.error(`Error checking ${table.tableName}:`, e);
         }
-      } catch (e) {
-        console.error(`Error checking ${table.tableName}:`, e);
+        return null;
+      })
+    );
+    
+    results.forEach((result) => {
+      if (result) {
+        statuses[result.tableName] = {
+          tableName: result.tableName,
+          status: 'imported',
+          existingCount: result.count
+        };
       }
-    }
+    });
     
     setImportStatuses(prev => ({ ...prev, ...statuses }));
     setIsLoadingCounts(false);
