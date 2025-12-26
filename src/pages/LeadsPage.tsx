@@ -5,6 +5,7 @@ import { LeadsTable } from '@/components/leads/LeadsTable';
 import { LeadFormDialog } from '@/components/leads/LeadFormDialog';
 import { FollowUpReminderDialog } from '@/components/leads/FollowUpReminderDialog';
 import { SubscriptionSelectionDialog } from '@/components/leads/SubscriptionSelectionDialog';
+import { BulkUploadDialog } from '@/components/leads/BulkUploadDialog';
 import { mockLeads } from '@/data/mockData';
 import { VERTICALS, Lead } from '@/types';
 import { useFollowUpReminders } from '@/hooks/useFollowUpReminders';
@@ -17,7 +18,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { Filter } from 'lucide-react';
+import { Filter, Upload } from 'lucide-react';
 import { toast } from 'sonner';
 
 export default function LeadsPage() {
@@ -28,6 +29,7 @@ export default function LeadsPage() {
   const [editingLead, setEditingLead] = useState<Lead | null>(null);
   const [subscriptionLead, setSubscriptionLead] = useState<Lead | null>(null);
   const [isSubscriptionDialogOpen, setIsSubscriptionDialogOpen] = useState(false);
+  const [isBulkUploadOpen, setIsBulkUploadOpen] = useState(false);
   const { addConvertedSubscription } = usePricing();
 
   const filteredLeads = leads.filter((lead) => {
@@ -85,6 +87,23 @@ export default function LeadsPage() {
       };
       setLeads([newLead, ...leads]);
     }
+  };
+
+  const handleBulkUpload = (uploadedLeads: Partial<Lead>[]) => {
+    const newLeads: Lead[] = uploadedLeads.map((leadData, idx) => ({
+      id: String(Date.now() + idx),
+      name: leadData.name || '',
+      email: leadData.email || '',
+      phone: leadData.phone || '',
+      vertical: leadData.vertical!,
+      status: leadData.status || 'new',
+      source: leadData.source || 'meta',
+      assignedTo: null,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+      notes: [],
+    }));
+    setLeads([...newLeads, ...leads]);
   };
 
   const handleConvert = (leadId: string) => {
@@ -146,6 +165,11 @@ export default function LeadsPage() {
             <Filter className="h-4 w-4 text-muted-foreground" />
             <span className="text-sm font-medium text-muted-foreground">Filters:</span>
           </div>
+
+          <Button variant="outline" size="sm" onClick={() => setIsBulkUploadOpen(true)}>
+            <Upload className="h-4 w-4 mr-2" />
+            Bulk Upload
+          </Button>
           
           <Select value={statusFilter} onValueChange={setStatusFilter}>
             <SelectTrigger className="w-40">
@@ -222,6 +246,13 @@ export default function LeadsPage() {
         onOpenChange={setIsSubscriptionDialogOpen}
         lead={subscriptionLead}
         onConfirm={handleSubscriptionConfirm}
+      />
+
+      {/* Bulk Upload Dialog */}
+      <BulkUploadDialog
+        open={isBulkUploadOpen}
+        onOpenChange={setIsBulkUploadOpen}
+        onUpload={handleBulkUpload}
       />
     </AppLayout>
   );
