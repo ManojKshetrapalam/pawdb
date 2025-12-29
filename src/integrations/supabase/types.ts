@@ -912,6 +912,7 @@ export type Database = {
           email: string
           email_verified_at: string | null
           id: string
+          is_active: boolean | null
           legacy_id: number | null
           mobile: string | null
           name: string
@@ -926,6 +927,7 @@ export type Database = {
           email: string
           email_verified_at?: string | null
           id?: string
+          is_active?: boolean | null
           legacy_id?: number | null
           mobile?: string | null
           name: string
@@ -940,6 +942,7 @@ export type Database = {
           email?: string
           email_verified_at?: string | null
           id?: string
+          is_active?: boolean | null
           legacy_id?: number | null
           mobile?: string | null
           name?: string
