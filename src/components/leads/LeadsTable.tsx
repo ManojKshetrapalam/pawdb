@@ -1,5 +1,5 @@
 import { Lead, VERTICALS } from '@/types';
-import { mockUsers } from '@/data/mockData';
+import { useActiveTeamUsers } from '@/hooks/useTeam';
 import { LeadStatusBadge } from './LeadStatusBadge';
 import { Button } from '@/components/ui/button';
 import {
@@ -38,6 +38,7 @@ interface LeadsTableProps {
 
 export function LeadsTable({ leads, onAssign, onConvert, onConvertWithSubscription, onEdit, showVertical = true }: LeadsTableProps) {
   const { currentUser, hasPermission } = useCurrentUser();
+  const { data: teamUsers = [] } = useActiveTeamUsers();
 
   const canExport = currentUser?.role === 'admin' || currentUser?.role === 'vertical-head';
   const canAssign = hasPermission('canMoveLeadsToMembers');
@@ -49,7 +50,7 @@ export function LeadsTable({ leads, onAssign, onConvert, onConvertWithSubscripti
 
   const getAssignedUser = (userId: string | null) => {
     if (!userId) return null;
-    return mockUsers.find((u) => u.id === userId);
+    return teamUsers.find((u) => u.id === userId);
   };
 
   const getLastNote = (lead: Lead) => {
@@ -58,7 +59,7 @@ export function LeadsTable({ leads, onAssign, onConvert, onConvertWithSubscripti
   };
 
   const handleAssign = (leadId: string, userId: string) => {
-    const user = mockUsers.find((u) => u.id === userId);
+    const user = teamUsers.find((u) => u.id === userId);
     toast.success(`Lead assigned to ${user?.name}`);
     onAssign?.(leadId, userId);
   };
@@ -216,7 +217,7 @@ export function LeadsTable({ leads, onAssign, onConvert, onConvertWithSubscripti
                               Assign to
                             </DropdownMenuSubTrigger>
                             <DropdownMenuSubContent>
-                              {mockUsers.map((user) => (
+                              {teamUsers.map((user) => (
                                 <DropdownMenuItem
                                   key={user.id}
                                   onClick={() => handleAssign(lead.id, user.id)}

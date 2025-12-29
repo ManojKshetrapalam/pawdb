@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Lead, VERTICALS, LeadStatus, LeadSource, Vertical, LeadNote } from '@/types';
-import { mockUsers } from '@/data/mockData';
+import { useActiveTeamUsers } from '@/hooks/useTeam';
 import { PostLeadDialog, PostLeadData } from './PostLeadDialog';
 import { SubscriptionSelectionDialog } from './SubscriptionSelectionDialog';
 import { usePricing } from '@/contexts/PricingContext';
@@ -74,6 +74,7 @@ export function LeadFormDialog({
   const [showSubscriptionDialog, setShowSubscriptionDialog] = useState(false);
   const [pendingLeadData, setPendingLeadData] = useState<Partial<Lead> | null>(null);
   const { addConvertedSubscription } = usePricing();
+  const { data: teamUsers = [] } = useActiveTeamUsers();
 
   const isEditing = !!lead;
 
@@ -447,7 +448,7 @@ export function LeadFormDialog({
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="unassigned">Unassigned</SelectItem>
-                      {mockUsers.map((user) => (
+                      {teamUsers.map((user) => (
                         <SelectItem key={user.id} value={user.id}>
                           {user.name}
                         </SelectItem>

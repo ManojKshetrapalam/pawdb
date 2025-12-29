@@ -2,13 +2,14 @@ import { useState } from 'react';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { Header } from '@/components/layout/Header';
 import { TeamEditDialog } from '@/components/team/TeamEditDialog';
-import { useTeamUsers, useTeamStats } from '@/hooks/useTeam';
+import { useTeamUsers, useTeamStats, useToggleTeamUserStatus, TeamUser } from '@/hooks/useTeam';
 import { User } from '@/types';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { Button } from '@/components/ui/button';
+import { Switch } from '@/components/ui/switch';
 import { Shield, User as UserIcon, Pencil, Users, TrendingUp, CheckCircle, Download, DollarSign, Loader2 } from 'lucide-react';
 import { useCurrentUser } from '@/contexts/CurrentUserContext';
 import { StatCard } from '@/components/dashboard/StatCard';
@@ -18,6 +19,7 @@ import { toast } from 'sonner';
 export default function TeamPage() {
   const { data: members = [], isLoading } = useTeamUsers();
   const { data: teamStats } = useTeamStats();
+  const toggleStatus = useToggleTeamUserStatus();
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingMember, setEditingMember] = useState<User | null>(null);
   const { currentUser, hasPermission } = useCurrentUser();
@@ -34,6 +36,10 @@ export default function TeamPage() {
   const handleEditClick = (member: User) => {
     setEditingMember(member);
     setIsDialogOpen(true);
+  };
+
+  const handleToggleStatus = (member: TeamUser) => {
+    toggleStatus.mutate({ userId: member.id, isActive: !member.isActive });
   };
 
   const handleSaveMember = (member: User) => {
@@ -182,6 +188,7 @@ export default function TeamPage() {
             <h2 className="text-lg font-semibold text-foreground mb-4">Team Members</h2>
             <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
               {members.map((user, index) => {
+                const teamUser = user as TeamUser;
                 const conversionRate = user.assignedLeads > 0 
                   ? Math.round((user.convertedLeads / user.assignedLeads) * 100)
                   : 0;
@@ -190,19 +197,24 @@ export default function TeamPage() {
                 return (
                   <Card 
                     key={user.id} 
-                    className="animate-fade-in group"
+                    className={`animate-fade-in group ${!teamUser.isActive ? 'opacity-60' : ''}`}
                     style={{ animationDelay: `${index * 100}ms` }}
                   >
                     <CardHeader className="pb-3 px-3 sm:px-6">
                       <div className="flex items-start justify-between gap-2">
                         <div className="flex items-center gap-2 sm:gap-3 min-w-0 flex-1">
                           <Avatar className="h-10 w-10 sm:h-12 sm:w-12 shrink-0">
-                            <AvatarFallback className="bg-primary/10 text-primary text-sm sm:text-lg">
+                            <AvatarFallback className={`text-sm sm:text-lg ${teamUser.isActive ? 'bg-primary/10 text-primary' : 'bg-muted text-muted-foreground'}`}>
                               {user.name.split(' ').map((n) => n[0]).join('')}
                             </AvatarFallback>
                           </Avatar>
                           <div className="min-w-0 flex-1">
-                            <h3 className="font-semibold text-card-foreground text-sm sm:text-base truncate">{user.name}</h3>
+                            <div className="flex items-center gap-2">
+                              <h3 className="font-semibold text-card-foreground text-sm sm:text-base truncate">{user.name}</h3>
+                              {!teamUser.isActive && (
+                                <Badge variant="outline" className="text-xs text-muted-foreground">Inactive</Badge>
+                              )}
+                            </div>
                             <p className="text-xs sm:text-sm text-muted-foreground truncate">{user.email}</p>
                           </div>
                         </div>
@@ -232,6 +244,18 @@ export default function TeamPage() {
                       </div>
                     </CardHeader>
                     <CardContent className="space-y-3 sm:space-y-4 px-3 sm:px-6">
+                      {/* Active/Inactive Toggle */}
+                      {canManagePermissions && (
+                        <div className="flex items-center justify-between py-2 px-3 rounded-lg bg-muted/50">
+                          <span className="text-sm text-muted-foreground">Active Status</span>
+                          <Switch
+                            checked={teamUser.isActive}
+                            onCheckedChange={() => handleToggleStatus(teamUser)}
+                            disabled={toggleStatus.isPending}
+                          />
+                        </div>
+                      )}
+                      
                       <div className="grid grid-cols-3 gap-1.5 sm:gap-2">
                         <div className="rounded-lg bg-muted p-2 sm:p-3 text-center">
                           <p className="text-base sm:text-xl font-bold text-card-foreground">{user.assignedLeads}</p>
