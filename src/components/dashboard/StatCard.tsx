@@ -11,12 +11,21 @@ interface StatCardProps {
 }
 
 export function StatCard({ title, value, change, changeType = 'neutral', icon: Icon, iconColor = 'text-primary' }: StatCardProps) {
+  // Determine font size based on value length
+  const valueString = String(value);
+  const getValueClass = () => {
+    if (valueString.length > 12) return 'text-sm sm:text-base lg:text-lg';
+    if (valueString.length > 8) return 'text-base sm:text-lg lg:text-xl';
+    if (valueString.length > 5) return 'text-lg sm:text-xl lg:text-2xl';
+    return 'text-xl sm:text-2xl lg:text-3xl';
+  };
+
   return (
     <div className="rounded-xl border border-border bg-card p-4 sm:p-6 transition-all hover:shadow-md animate-fade-in overflow-hidden">
       <div className="flex items-start justify-between gap-2">
         <div className="min-w-0 flex-1">
           <p className="text-xs sm:text-sm font-medium text-muted-foreground truncate">{title}</p>
-          <p className="mt-1 sm:mt-2 text-lg sm:text-2xl lg:text-3xl font-bold text-card-foreground truncate">{value}</p>
+          <p className={cn('mt-1 sm:mt-2 font-bold text-card-foreground break-all', getValueClass())}>{value}</p>
           {change && (
             <p
               className={cn(
