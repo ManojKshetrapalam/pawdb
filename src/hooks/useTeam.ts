@@ -21,9 +21,9 @@ const mapTeamUserToUser = (row: TeamUserRow): TeamUser => {
     email: row.email || '',
     role,
     permissions: { ...DEFAULT_PERMISSIONS[role] },
-    assignedLeads: 0, // Will be calculated from leads data
-    convertedLeads: 0, // Will be calculated from leads data
-    isActive: (row as any).is_active ?? true,
+    assignedLeads: 0,
+    convertedLeads: 0,
+    isActive: row.is_active ?? true,
   };
 };
 
@@ -66,12 +66,14 @@ export const useToggleTeamUserStatus = () => {
   
   return useMutation({
     mutationFn: async ({ userId, isActive }: { userId: string; isActive: boolean }) => {
-      const { error } = await supabase
+      const { data, error } = await supabase
         .from('team_users')
-        .update({ is_active: isActive } as any)
-        .eq('id', userId);
+        .update({ is_active: isActive })
+        .eq('id', userId)
+        .select();
       
       if (error) throw error;
+      return data;
     },
     onSuccess: (_, { isActive }) => {
       queryClient.invalidateQueries({ queryKey: ['team_users'] });

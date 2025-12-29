@@ -209,12 +209,7 @@ export default function TeamPage() {
                             </AvatarFallback>
                           </Avatar>
                           <div className="min-w-0 flex-1">
-                            <div className="flex items-center gap-2">
-                              <h3 className="font-semibold text-card-foreground text-sm sm:text-base truncate">{user.name}</h3>
-                              {!teamUser.isActive && (
-                                <Badge variant="outline" className="text-xs text-muted-foreground">Inactive</Badge>
-                              )}
-                            </div>
+                            <h3 className="font-semibold text-card-foreground text-sm sm:text-base truncate">{user.name}</h3>
                             <p className="text-xs sm:text-sm text-muted-foreground truncate">{user.email}</p>
                           </div>
                         </div>
@@ -229,17 +224,25 @@ export default function TeamPage() {
                               <Pencil className="h-3 w-3 sm:h-4 sm:w-4" />
                             </Button>
                           )}
-                          <Badge 
-                            variant={user.role === 'admin' ? 'default' : 'secondary'}
-                            className="gap-1 text-xs px-1.5 sm:px-2"
-                          >
-                            {user.role === 'admin' ? (
-                              <Shield className="h-3 w-3" />
-                            ) : (
-                              <UserIcon className="h-3 w-3" />
-                            )}
-                            <span className="hidden sm:inline">{user.role}</span>
-                          </Badge>
+                          <div className="flex flex-col items-end gap-1">
+                            <Badge 
+                              variant={user.role === 'admin' ? 'default' : 'secondary'}
+                              className="gap-1 text-xs px-1.5 sm:px-2"
+                            >
+                              {user.role === 'admin' ? (
+                                <Shield className="h-3 w-3" />
+                              ) : (
+                                <UserIcon className="h-3 w-3" />
+                              )}
+                              <span className="hidden sm:inline">{user.role}</span>
+                            </Badge>
+                            <Badge 
+                              variant={teamUser.isActive ? 'outline' : 'secondary'}
+                              className={`text-xs ${teamUser.isActive ? 'text-success border-success/50' : 'text-muted-foreground'}`}
+                            >
+                              {teamUser.isActive ? 'Active' : 'Inactive'}
+                            </Badge>
+                          </div>
                         </div>
                       </div>
                     </CardHeader>
